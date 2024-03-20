@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FLIP Fluid Sim", "FLIP Fluid Sim\FLIP Fluid Sim.vcxproj", "{C6EA32F9-9F6A-488B-8658-434E1833B9CD}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FLIP Fluid Sim", "src\FLIP Fluid Sim.vcxproj", "{C6EA32F9-9F6A-488B-8658-434E1833B9CD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <glad/glad.h>
 
 std::string inputVertShader()
 {
@@ -27,11 +28,11 @@ std::string inputFragShader()
     return frag;
 }
 
-unsigned int getCompiledVShader()
+GLuint getCompiledVShader()
 {
     std::string vString = inputVertShader();
     const char* vertexShaderSource = vString.c_str();
-    unsigned int vertexShader;
+    GLuint vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
@@ -39,11 +40,11 @@ unsigned int getCompiledVShader()
     return vertexShader;
 }
 
-unsigned int getCompiledFShader()
+GLuint getCompiledFShader()
 {
     std::string fString = inputFragShader();
     const char* fragmentShaderSource = fString.c_str();
-    unsigned int fragmentShader;
+    GLuint fragmentShader;
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
@@ -51,12 +52,12 @@ unsigned int getCompiledFShader()
     return fragmentShader;
 }
 
-unsigned int createAndUseShaderProgram()
+GLuint createAndUseShaderProgram()
 {
-    unsigned int vertexShader = getCompiledVShader();
-    unsigned int fragmentShader = getCompiledFShader();
+    GLuint vertexShader = getCompiledVShader();
+    GLuint fragmentShader = getCompiledFShader();
 
-    unsigned int shaderProgram;
+    GLuint shaderProgram;
     shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);

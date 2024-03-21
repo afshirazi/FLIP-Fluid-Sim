@@ -25,10 +25,10 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     float floor_vertices[] = {
+     -0.5f, 0.f,  0.5f,
      -0.5f, 0.f, -0.5f,
-     -0.5f, 0.f, -1.f,
-      0.5f, 0.f, -0.5f,
-      0.5f, 0.f, -1.f,
+      0.5f, 0.f,  0.5f,
+      0.5f, 0.f, -0.5f
     };
     unsigned int floor_indices[] = {
         0, 1, 2,
@@ -54,23 +54,26 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
 
-
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 view = glm::mat4(1.0f);
-    proj = glm::perspective(glm::radians(45.0f), 1.f, 1.f, 100.0f);
-    model = glm::rotate(model, glm::radians(-75.0f), glm::vec3(1.f, 0.f, 0.f));
-    model = glm::rotate(model, glm::radians(-30.0f), glm::vec3(0.f, 0.f, 1.f));
-    view = glm::translate(view, glm::vec3(0.f, 0.f, -2.f));
+    proj = glm::perspective(glm::radians(55.0f), 8.f/6.f, 0.1f, 10.0f);
+    model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
+    model = glm::rotate(model, glm::radians(-35.0f), glm::vec3(0.f, 1.f, 0.f));
+    model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
+    view = glm::translate(view, glm::vec3(0.f, 0.2f, -1.1f));
 
     glm::mat4 transform = proj * view * model;
 
-    GLint modelint = glGetUniformLocation(shaderProg, "transform");
-    glUniformMatrix4fv(modelint, 1, GL_FALSE, glm::value_ptr(transform));
+    GLint transformLoc = glGetUniformLocation(shaderProg, "transform");
+    glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
 
     while (!glfwWindowShouldClose(window))
     {
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         glBindVertexArray(VAO);
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

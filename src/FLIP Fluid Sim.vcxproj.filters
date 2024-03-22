@@ -26,7 +26,10 @@
     <None Include="v.glsl">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="f.glsl">
+    <None Include="f_floor.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="f_particle.glsl">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

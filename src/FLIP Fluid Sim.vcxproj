@@ -23,7 +23,8 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="f.glsl" />
+    <None Include="f_floor.glsl" />
+    <None Include="f_particle.glsl" />
     <None Include="v.glsl" />
   </ItemGroup>
   <ItemGroup>

@@ -102,7 +102,8 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
 
-    GLuint shaderProg = createAndUseShaderProgram();
+    GLuint fShaderProg = createAndUseFloorShaderProg();
+    GLuint pShaderProg = createAndUsePartShaderProg();
 
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 model = glm::mat4(1.0f);
@@ -124,8 +125,10 @@ int main() {
     view = glm::translate(view, glm::vec3(0.f, 0.f, -1.1f));
     particles_transform = proj * view * model;
 
-    GLint transformLoc = glGetUniformLocation(shaderProg, "transform");
-    GLint colorLoc = glGetUniformLocation(shaderProg, "vertColor");
+    GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");
+    GLint fColorLoc = glGetUniformLocation(fShaderProg, "vertColor");
+    GLint pTransformLoc = glGetUniformLocation(pShaderProg, "transform");
+    GLint pColorLoc = glGetUniformLocation(pShaderProg, "vertColor");
 
     // rendering loop
     while (!glfwWindowShouldClose(window))
@@ -134,17 +137,25 @@ int main() {
         glEnable(GL_BLEND);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
+        // Use particle shaders
+        glLinkProgram(fShaderProg);
+        glUseProgram(fShaderProg);
+
         // Draw floor
         glBindVertexArray(floor_VAO);
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(floor_transform));
-        glUniform3f(colorLoc, 0.5f, 0.f, 0.f); // color red
+        glUniformMatrix4fv(fTransformLoc, 1, GL_FALSE, glm::value_ptr(floor_transform));
+        glUniform3f(fColorLoc, 0.5f, 0.f, 0.f); // color red
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
+        // Use particle shaders
+        glLinkProgram(pShaderProg);
+        glUseProgram(pShaderProg);
+
         // Draw particles
         glBindVertexArray(particles_VAO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(particles_pos), particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
-        glUniform3f(colorLoc, 0.f, 0.f, 0.5f); // color blue
+        glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
+        glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
         glPointSize(5);
         glDrawArrays(GL_POINTS, 0, 15);
 

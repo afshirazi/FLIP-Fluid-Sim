@@ -16,9 +16,21 @@ std::string inputVertShader()
     return vert;
 }
 
-std::string inputFragShader()
+std::string inputFragFloorShader()
 {
-    std::ifstream istr("f.glsl");
+    std::ifstream istr("f_floor.glsl");
+    std::string frag;
+    std::stringstream fShaderStream;
+    fShaderStream << istr.rdbuf();
+    frag = fShaderStream.str();
+
+    istr.close();
+    return frag;
+}
+
+std::string inputFragPartShader()
+{
+    std::ifstream istr("f_particle.glsl");
     std::string frag;
     std::stringstream fShaderStream;
     fShaderStream << istr.rdbuf();
@@ -40,9 +52,9 @@ GLuint getCompiledVShader()
     return vertexShader;
 }
 
-GLuint getCompiledFShader()
+GLuint getCompiledFFloorShader()
 {
-    std::string fString = inputFragShader();
+    std::string fString = inputFragFloorShader();
     const char* fragmentShaderSource = fString.c_str();
     GLuint fragmentShader;
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -52,10 +64,40 @@ GLuint getCompiledFShader()
     return fragmentShader;
 }
 
-GLuint createAndUseShaderProgram()
+GLuint getCompiledFPartShader()
+{
+    std::string fString = inputFragPartShader();
+    const char* fragmentShaderSource = fString.c_str();
+    GLuint fragmentShader;
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    return fragmentShader;
+}
+
+GLuint createAndUseFloorShaderProg()
 {
     GLuint vertexShader = getCompiledVShader();
-    GLuint fragmentShader = getCompiledFShader();
+    GLuint fragmentShader = getCompiledFFloorShader();
+
+    GLuint shaderProgram;
+    shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    glUseProgram(shaderProgram);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProgram;
+}
+
+GLuint createAndUsePartShaderProg()
+{
+    GLuint vertexShader = getCompiledVShader();
+    GLuint fragmentShader = getCompiledFPartShader();
 
     GLuint shaderProgram;
     shaderProgram = glCreateProgram();

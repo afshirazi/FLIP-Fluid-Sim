@@ -41,18 +41,19 @@ int main() {
         -0.2f, 0.2f,  0.f,
         -0.15f, 0.2f,  0.f,
         -0.1f, 0.2f,  0.f,
-        -0.3f, 0.2f,  0.1f,
-        -0.25f, 0.2f,  0.1f,
-        -0.2f, 0.2f,  0.1f,
-        -0.15f, 0.2f,  0.1f,
-        -0.1f, 0.2f,  0.1f,
-        -0.3f, 0.2f,  0.2f,
-        -0.25f, 0.2f,  0.2f,
-        -0.2f, 0.2f,  0.2f,
-        -0.15f, 0.2f,  0.2f,
-        -0.1f, 0.2f,  0.2f,
+        -0.3f, 0.2f,  -0.1f,
+        -0.25f, 0.2f,  -0.1f,
+        -0.2f, 0.2f,  -0.1f,
+        -0.15f, 0.2f,  -0.1f,
+        -0.1f, 0.2f,  -0.1f,
+        -0.3f, 0.2f,  -0.2f,
+        -0.25f, 0.2f,  -0.2f,
+        -0.2f, 0.2f,  -0.2f,
+        -0.15f, 0.2f,  -0.2f,
+        -0.1f, 0.2f,  -0.2f,
     };
 
+    // VAO for "floor"
     GLuint floor_VAO;
     glGenVertexArrays(1, &floor_VAO);
     glBindVertexArray(floor_VAO);
@@ -69,6 +70,7 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floor_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
 
+    // VAO for points
     GLuint points_VAO;
     glGenVertexArrays(1, &points_VAO);
     glBindVertexArray(points_VAO);
@@ -78,23 +80,29 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, points_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(points_vertices), points_vertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
-    
+    glEnableVertexAttribArray(0);
+
     GLuint shaderProg = createAndUseShaderProgram();
 
-    glm::mat4 proj = glm::mat4(1.0f);
-    glm::mat4 model = glm::mat4(1.0f);
-    glm::mat4 view = glm::mat4(1.0f);
+    glm::mat4 proj;
+    glm::mat4 model;
+    glm::mat4 view;
     glm::mat4 transform;
     GLint transformLoc = glGetUniformLocation(shaderProg, "transform");
+    GLint colorLoc = glGetUniformLocation(shaderProg, "vertColor");
 
     while (!glfwWindowShouldClose(window))
     {
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        
         glBindVertexArray(floor_VAO);
 
         // Transformations for floor
+        proj = glm::mat4(1.0f);
+        model = glm::mat4(1.0f);
+        view = glm::mat4(1.0f);
         proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
         model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
         model = glm::rotate(model, glm::radians(-35.0f), glm::vec3(0.f, 1.f, 0.f));
@@ -103,8 +111,29 @@ int main() {
 
         transform = proj * view * model;
         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+        glUniform3f(colorLoc, 0.5f, 0.f, 0.f); // color red
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0); // unbind
+        
+
+        glBindVertexArray(points_VAO);
+
+        // Transformations for floor
+        proj = glm::mat4(1.0f);
+        model = glm::mat4(1.0f);
+        view = glm::mat4(1.0f);
+        proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
+        model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
+        model = glm::rotate(model, glm::radians(-35.0f), glm::vec3(0.f, 1.f, 0.f));
+        //model = glm::scale(model, glm::vec3(2, 2, 2));
+        view = glm::translate(view, glm::vec3(0.f, 0.f, -1.1f));
+
+        transform = proj * view * model;
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+        glUniform3f(colorLoc, 0.f, 0.f, 0.5f); // color blue
+        glPointSize(5);
+        glDrawArrays(GL_POINTS, 0, 45);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

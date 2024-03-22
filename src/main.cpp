@@ -11,21 +11,21 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void applyGrav(GLfloat dt);
 
 GLfloat particles_pos[] = {
-        -0.3f, 0.2f,  0.f,
-        -0.25f, 0.2f,  0.f,
-        -0.2f, 0.2f,  0.f,
-        -0.15f, 0.2f,  0.f,
-        -0.1f, 0.2f,  0.f,
-        -0.3f, 0.2f,  -0.1f,
+        -0.5f, 0.2f,  0.5f,
+        -0.25f, 0.2f,  0.5f,
+        -0.2f, 0.2f,  0.5f,
+        -0.15f, 0.2f,  0.5f,
+        -0.f, 0.2f,  0.5f,
+        -0.5f, 0.2f,  -0.1f,
         -0.25f, 0.2f,  -0.1f,
         -0.2f, 0.2f,  -0.1f,
         -0.15f, 0.2f,  -0.1f,
-        -0.1f, 0.2f,  -0.1f,
-        -0.3f, 0.2f,  -0.2f,
-        -0.25f, 0.2f,  -0.2f,
-        -0.2f, 0.2f,  -0.2f,
-        -0.15f, 0.2f,  -0.2f,
-        -0.1f, 0.2f,  -0.2f,
+        -0.f, 0.2f,  -0.1f,
+        -0.5f, 0.2f,  -0.4f,
+        -0.25f, 0.2f,  -0.4f,
+        -0.2f, 0.2f,  -0.4f,
+        -0.15f, 0.2f,  -0.4f,
+        -0.f, 0.2f,  -0.4f,
 };
 
 GLfloat particles_vel[] = {
@@ -114,7 +114,7 @@ int main() {
     // Transformations for floor
     proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
     model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
-    model = glm::rotate(model, glm::radians(-35.0f), glm::vec3(0.f, 1.f, 0.f));
+    model = glm::rotate(model, glm::radians(-120.0f), glm::vec3(0.f, 1.f, 0.f));
     model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
     view = glm::translate(view, glm::vec3(0.f, 0.2f, -1.1f));
     floor_transform = proj * view * model;
@@ -144,7 +144,7 @@ int main() {
         // Draw floor
         glBindVertexArray(floor_VAO);
         glUniformMatrix4fv(fTransformLoc, 1, GL_FALSE, glm::value_ptr(floor_transform));
-        glUniform3f(fColorLoc, 0.5f, 0.f, 0.f); // color red
+        glUniform3f(fColorLoc, 0.29f, 0.29f, 0.29f); // color red
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
         // Use particle shaders
@@ -160,7 +160,7 @@ int main() {
         glDrawArrays(GL_POINTS, 0, 15);
 
         // Apply forces
-        applyGrav(1.f / 10000.f);
+        applyGrav(1.f / 1000.f);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

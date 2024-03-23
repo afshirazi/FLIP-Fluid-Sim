@@ -10,7 +10,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 void applyGrav(GLfloat dt);
-void checkFloorCollision();
+void checkSolidCellCollision();
 
 Scene setupFluidScene();
 
@@ -171,7 +171,7 @@ int main() {
 
         // Apply forces
         applyGrav(1.f / 2000.f);
-        checkFloorCollision();
+        checkSolidCellCollision();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -194,14 +194,60 @@ void applyGrav(GLfloat dt)
     }
 }
 
-void checkFloorCollision()
+void checkSolidCellCollision()
 {
-    for (GLuint i = 1; i < scene.num_p * 3; i += 3)
+    /*for (GLuint i = 1; i < scene.num_p * 3; i += 3)
     {
-        if (scene.particles_pos[i] <= 0.f)
+        if (scene.particles_pos[i] <= 0.005f)
         {
-            scene.particles_pos[i] = 0.f;
+            scene.particles_pos[i] = 0.005f;
             scene.particles_vel[i] = 0.f;
+        }
+    }*/
+    for (GLuint i = 0; i < scene.num_p * 3; i += 3)
+    {
+        const GLfloat x_pos = scene.particles_pos[i];
+        const GLfloat y_pos = scene.particles_pos[i + 1];
+        const GLfloat z_pos = scene.particles_pos[i + 2];
+
+        /*
+        * Minimum position of particles at any bound
+        * cell size is c_size at most, and particle has to be beyond the first cell in every dimension, 
+        * so min position is cell size + particle radius (puts the particle in a fluid cell rather than a solid cell)
+        * Max pos is similar, but y direction is unbounded
+        */
+        GLfloat min_pos = scene.c_size + scene.p_rad; 
+        GLfloat max_pos_x = scene.c_size * (scene.num_c_x - 1) - scene.p_rad;
+        GLfloat max_pos_z = scene.c_size * (scene.num_c_z - 1) - scene.p_rad;
+
+        if (x_pos < min_pos)
+        {
+            scene.particles_pos[i] = min_pos;
+            scene.particles_vel[i] = 0.f;
+        }
+            
+        if (y_pos < min_pos)
+        {
+            scene.particles_pos[i + 1] = min_pos;
+            scene.particles_vel[i + 1] = 0.f;
+        }
+
+        if (z_pos < min_pos)
+        {
+            scene.particles_pos[i + 2] = min_pos;
+            scene.particles_vel[i + 2] = 0.f;
+        }
+
+        if (x_pos > max_pos_x)
+        {
+            scene.particles_pos[i] = max_pos_x;
+            scene.particles_vel[i] = 0.f;
+        }
+
+        if (z_pos > max_pos_z)
+        {
+            scene.particles_pos[i + 2] = max_pos_z;
+            scene.particles_vel[i + 2] = 0.f;
         }
     }
 }
@@ -219,20 +265,18 @@ Scene setupFluidScene()
     const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
     const GLfloat p_rad = 0.005f; // particle radius
+    const GLfloat cell_size = 0.6 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to [0, 0.6] coordinates (arbitrary choice)
 
-    Scene scene(num_particles, num_cells);
+    Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, cell_size);
 
     int particle = 0;
     for (int i = 0; i < num_p_x; i++)
         for (int j = 0; j < num_p_y; j++)
             for (int k = 0; k < num_p_z; k++)
             {
-                //scene.particles_pos[particle++] = i / 32.f * 0.5f - 0.5f;
-                //scene.particles_pos[particle++] = j / 32.f * 0.2f + 0.1f;
-                //scene.particles_pos[particle++] = k / 32.f * 0.9f - 0.45f;
-                scene.particles_pos[particle++] = 0.05f + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
+                scene.particles_pos[particle++] = 0.1f + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
                 scene.particles_pos[particle++] = 0.1f + p_rad + 2 * j * p_rad;
-                scene.particles_pos[particle++] = 0.05f + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
+                scene.particles_pos[particle++] = 0.1f + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
             }
 
     for (int i = 0; i < num_c_x; i++)

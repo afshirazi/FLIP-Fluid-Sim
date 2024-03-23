@@ -9,7 +9,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
-void applyGrav(GLfloat dt);
+void applyVel(GLfloat dt);
 void checkSolidCellCollision();
 
 Scene setupFluidScene();
@@ -170,7 +170,7 @@ int main() {
         glDrawArrays(GL_POINTS, 0, scene.num_p);
 
         // Apply forces
-        applyGrav(1.f / 2000.f);
+        applyVel(1.f / 2000.f);
         checkSolidCellCollision();
 
         glfwSwapBuffers(window);
@@ -185,32 +185,28 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void applyGrav(GLfloat dt)
+void applyVel(GLfloat dt)
 {
-    for (GLuint i = 1; i < scene.num_p * 3; i += 3)
+    for (GLuint i = 0; i < scene.num_p * 3; i += 3)
     {
-        scene.particles_vel[i] -= 9.82f * dt;
-        scene.particles_pos[i] += scene.particles_vel[i ] * dt;
+        scene.particles_pos[i] += scene.particles_vel[i] * dt;
+        scene.particles_vel[i + 1] -= 9.82f * dt;
+        scene.particles_pos[i + 1] += scene.particles_vel[i + 1] * dt;
+        scene.particles_pos[i + 2] += scene.particles_vel[i + 2] * dt;
     }
 }
 
 void checkSolidCellCollision()
 {
-    /*for (GLuint i = 1; i < scene.num_p * 3; i += 3)
-    {
-        if (scene.particles_pos[i] <= 0.005f)
-        {
-            scene.particles_pos[i] = 0.005f;
-            scene.particles_vel[i] = 0.f;
-        }
-    }*/
     for (GLuint i = 0; i < scene.num_p * 3; i += 3)
     {
         const GLfloat x_pos = scene.particles_pos[i];
         const GLfloat y_pos = scene.particles_pos[i + 1];
         const GLfloat z_pos = scene.particles_pos[i + 2];
 
+
         /*
+        * For cell walls checking
         * Minimum position of particles at any bound
         * cell size is c_size at most, and particle has to be beyond the first cell in every dimension, 
         * so min position is cell size + particle radius (puts the particle in a fluid cell rather than a solid cell)

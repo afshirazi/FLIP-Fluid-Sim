@@ -4,11 +4,18 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "util.hpp"
+#include "util.h"
+#include "scene.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 void applyGrav(GLfloat dt);
+
+Scene setupFluidScene();
+
+Scene scene;
+
+/* REMOVE LATER
 
 GLfloat particles_pos[] = {
         -0.5f, 0.2f,  0.5f,
@@ -45,6 +52,8 @@ GLfloat particles_vel[] = {
         0.f, 0.f,  0.f,
         0.f, 0.f,  0.f,
 };
+*/
+
 
 int main() {
     // Some code taken from learnopengl.com
@@ -90,6 +99,8 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floor_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
 
+    scene = setupFluidScene();
+
     // VAO for particles
     GLuint particles_VAO;
     glGenVertexArrays(1, &particles_VAO);
@@ -98,7 +109,7 @@ int main() {
     GLuint particles_VBO;
     glGenBuffers(1, &particles_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, particles_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(particles_pos), particles_pos, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -153,14 +164,14 @@ int main() {
 
         // Draw particles
         glBindVertexArray(particles_VAO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(particles_pos), particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
         glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
         glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
         glPointSize(5);
-        glDrawArrays(GL_POINTS, 0, 15);
+        glDrawArrays(GL_POINTS, 0, scene.num_p);
 
         // Apply forces
-        applyGrav(1.f / 1000.f);
+        applyGrav(1.f / 2000.f);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -176,9 +187,49 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void applyGrav(GLfloat dt)
 {
-    for (int i = 1; i < 45; i += 3)
+    for (GLuint i = 1; i < scene.num_p * 3; i += 3)
     {
-        particles_vel[i] -= 9.82 * dt;
-        particles_pos[i] += particles_vel[i] * dt;
+        scene.particles_vel[i] -= 9.82f * dt;
+        scene.particles_pos[i] += scene.particles_vel[i ] * dt;
     }
+}
+
+Scene setupFluidScene()
+{
+    const GLuint num_p_x = 32;
+    const GLuint num_p_y = 32;
+    const GLuint num_p_z = 32;
+    const GLuint num_c_x = 20;
+    const GLuint num_c_y = 20;
+    const GLuint num_c_z = 20;
+
+    const GLuint num_particles = num_p_x * num_p_y * num_p_z;
+    const GLuint num_cells = num_c_x * num_c_y * num_c_z;
+
+    Scene scene(num_particles, num_cells);
+
+    int particle = 0;
+    for (int i = 0; i < num_p_x; i++)
+        for (int j = 0; j < num_p_y; j++)
+            for (int k = 0; k < num_p_z; k++)
+            {
+                scene.particles_pos[particle++] = i / 32.f * 0.5f - 0.5f;
+                scene.particles_pos[particle++] = j / 32.f * 0.2f + 0.2f;
+                scene.particles_pos[particle++] = k / 32.f * 0.9f - 0.45f;
+            }
+
+    std::cout << "line 229 " << scene.particles_vel[12] << std::endl;
+
+    for (int i = 0; i < num_c_x; i++)
+        for (int j = 0; j < num_c_y; j++)
+            for (int k = 0; k < num_c_z; k++)
+            {
+                CellType curr_c_type = FLUID;
+                if (i == 0 || i == num_c_x - 1 || j == 0 || k == 0 || k == num_c_z - 1)
+                    curr_c_type = SOLID;
+
+                scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
+            }
+
+    return scene;
 }

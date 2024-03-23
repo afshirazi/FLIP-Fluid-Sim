@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="scene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="f_floor.glsl" />
@@ -28,7 +29,7 @@
     <None Include="v.glsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="util.hpp" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

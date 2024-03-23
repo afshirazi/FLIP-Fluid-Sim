@@ -77,7 +77,7 @@ GLuint getCompiledFPartShader()
     return fragmentShader;
 }
 
-GLuint createAndUseFloorShaderProg()
+GLuint createAndLinkFloorShaderProg()
 {
     GLuint vertexShader = getCompiledVShader();
     GLuint fragmentShader = getCompiledFFloorShader();
@@ -87,7 +87,6 @@ GLuint createAndUseFloorShaderProg()
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
@@ -95,7 +94,7 @@ GLuint createAndUseFloorShaderProg()
     return shaderProgram;
 }
 
-GLuint createAndUsePartShaderProg()
+GLuint createAndLinkParticleShaderProg()
 {
     GLuint vertexShader = getCompiledVShader();
     GLuint fragmentShader = getCompiledFPartShader();
@@ -105,7 +104,6 @@ GLuint createAndUsePartShaderProg()
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);

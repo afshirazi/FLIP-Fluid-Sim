@@ -10,6 +10,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 void applyGrav(GLfloat dt);
+void checkFloorCollision();
 
 Scene setupFluidScene();
 
@@ -113,8 +114,8 @@ int main() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
 
-    GLuint fShaderProg = createAndUseFloorShaderProg();
-    GLuint pShaderProg = createAndUsePartShaderProg();
+    GLuint fShaderProg = createAndLinkFloorShaderProg();
+    GLuint pShaderProg = createAndLinkParticleShaderProg();
 
     glm::mat4 proj = glm::mat4(1.0f);
     glm::mat4 model = glm::mat4(1.0f);
@@ -127,13 +128,11 @@ int main() {
     model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
     model = glm::rotate(model, glm::radians(-120.0f), glm::vec3(0.f, 1.f, 0.f));
     model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
-    view = glm::translate(view, glm::vec3(0.f, 0.2f, -1.1f));
+    view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
     floor_transform = proj * view * model;
     
     // Transformations for particles
-    view = glm::mat4(1.0f);
     model = glm::scale(model, glm::vec3(0.67, 0.67, 0.67));
-    view = glm::translate(view, glm::vec3(0.f, 0.f, -1.1f));
     particles_transform = proj * view * model;
 
     GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");
@@ -172,6 +171,7 @@ int main() {
 
         // Apply forces
         applyGrav(1.f / 2000.f);
+        checkFloorCollision();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -191,6 +191,18 @@ void applyGrav(GLfloat dt)
     {
         scene.particles_vel[i] -= 9.82f * dt;
         scene.particles_pos[i] += scene.particles_vel[i ] * dt;
+    }
+}
+
+void checkFloorCollision()
+{
+    for (GLuint i = 1; i < scene.num_p * 3; i += 3)
+    {
+        if (scene.particles_pos[i] <= 0.f)
+        {
+            scene.particles_pos[i] = 0.f;
+            scene.particles_vel[i] = 0.f;
+        }
     }
 }
 
@@ -214,11 +226,9 @@ Scene setupFluidScene()
             for (int k = 0; k < num_p_z; k++)
             {
                 scene.particles_pos[particle++] = i / 32.f * 0.5f - 0.5f;
-                scene.particles_pos[particle++] = j / 32.f * 0.2f + 0.2f;
+                scene.particles_pos[particle++] = j / 32.f * 0.2f + 0.1f;
                 scene.particles_pos[particle++] = k / 32.f * 0.9f - 0.45f;
             }
-
-    std::cout << "line 229 " << scene.particles_vel[12] << std::endl;
 
     for (int i = 0; i < num_c_x; i++)
         for (int j = 0; j < num_c_y; j++)

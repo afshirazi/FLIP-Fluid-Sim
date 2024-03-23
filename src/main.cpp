@@ -218,6 +218,8 @@ Scene setupFluidScene()
     const GLuint num_particles = num_p_x * num_p_y * num_p_z;
     const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
+    const GLfloat p_rad = 0.005f; // particle radius
+
     Scene scene(num_particles, num_cells);
 
     int particle = 0;
@@ -225,9 +227,12 @@ Scene setupFluidScene()
         for (int j = 0; j < num_p_y; j++)
             for (int k = 0; k < num_p_z; k++)
             {
-                scene.particles_pos[particle++] = i / 32.f * 0.5f - 0.5f;
-                scene.particles_pos[particle++] = j / 32.f * 0.2f + 0.1f;
-                scene.particles_pos[particle++] = k / 32.f * 0.9f - 0.45f;
+                //scene.particles_pos[particle++] = i / 32.f * 0.5f - 0.5f;
+                //scene.particles_pos[particle++] = j / 32.f * 0.2f + 0.1f;
+                //scene.particles_pos[particle++] = k / 32.f * 0.9f - 0.45f;
+                scene.particles_pos[particle++] = 0.05f + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
+                scene.particles_pos[particle++] = 0.1f + p_rad + 2 * j * p_rad;
+                scene.particles_pos[particle++] = 0.05f + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
             }
 
     for (int i = 0; i < num_c_x; i++)

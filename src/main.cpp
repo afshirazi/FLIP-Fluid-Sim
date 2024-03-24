@@ -265,6 +265,13 @@ void handleParticleParticleCollision()
         int x_int = std::floor(scene.particles_pos[i] / scene.num_c_x);
         int y_int = std::floor(scene.particles_pos[i + 1] / scene.num_c_y);
         int z_int = std::floor(scene.particles_pos[i + 2] / scene.num_c_z);
+        
+        if (x_int < 0) x_int = 0;
+        if (x_int > scene.num_c_x) x_int = scene.num_c_x;
+        if (y_int < 0) y_int = 0;
+        if (y_int > scene.num_c_y) y_int = scene.num_c_y;
+        if (z_int < 0) z_int = 0;
+        if (z_int > scene.num_c_z) z_int = scene.num_c_z;
 
         cell_p_count[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int]++;
     }
@@ -282,6 +289,13 @@ void handleParticleParticleCollision()
         int x_int = std::floor(scene.particles_pos[i * 3] / scene.num_c_x);
         int y_int = std::floor(scene.particles_pos[i * 3 + 1] / scene.num_c_y);
         int z_int = std::floor(scene.particles_pos[i * 3 + 2] / scene.num_c_z);
+
+        if (x_int < 0) x_int = 0;
+        if (x_int > scene.num_c_x) x_int = scene.num_c_x;
+        if (y_int < 0) y_int = 0;
+        if (y_int > scene.num_c_y) y_int = scene.num_c_y;
+        if (z_int < 0) z_int = 0;
+        if (z_int > scene.num_c_z) z_int = scene.num_c_z;
 
         int p_pos = --first_cell[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int];
         sorted_particles[p_pos] = i;

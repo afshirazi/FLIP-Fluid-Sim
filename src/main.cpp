@@ -66,7 +66,7 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(800, 600, "FLIP Fluid Simulator", NULL, NULL);
 	glfwMakeContextCurrent(window);
 
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -303,6 +303,7 @@ void handleParticleParticleCollision()
 		sorted_particles[p_pos] = i;
 	}
 
+	// TODO make more efficient neighborhood lookup
 	// push particles apart
 	GLfloat min_dist = 2 * scene.p_rad;
 	GLfloat min_dist_sq = min_dist * min_dist;
@@ -343,7 +344,7 @@ void handleParticleParticleCollision()
 
 						GLfloat pq_dist_sq = (px - qx) * (px - qx) + (py - qy) * (py - qy) + (pz - qz) * (pz - qz);
 						if (pq_dist_sq > min_dist_sq) continue;
-						
+
 						GLfloat pq_dist = std::sqrt(pq_dist_sq);
 
 						if (pq_dist == 0) continue; // avoid div by 0
@@ -362,6 +363,75 @@ void handleParticleParticleCollision()
 						scene.particles_pos[q * 3 + 2] -= push_z;
 					}
 				}
+	}
+}
+
+void updateDensity()
+{
+	GLfloat half_cs = 0.5 * scene.c_size;
+
+	for (int i = 0; i < scene.num_p; i += 3)
+	{
+		GLfloat px = scene.particles_pos[i];
+		GLfloat py = scene.particles_pos[i + 1];
+		GLfloat pz = scene.particles_pos[i + 2];
+
+		if (px < scene.c_size) px = scene.c_size;
+		if (px > scene.c_size * (scene.num_c_x - 1)) px = scene.c_size * (scene.num_c_x - 1);
+		if (py < scene.c_size) py = scene.c_size;
+		if (px > scene.c_size * (scene.num_c_y - 1)) py = scene.c_size * (scene.num_c_y - 1);
+		if (pz < scene.c_size) pz = scene.c_size;
+		if (px > scene.c_size * (scene.num_c_z - 1)) pz = scene.c_size * (scene.num_c_z - 1);
+
+		// Get corners of grid
+		GLuint x0 = std::floor((px - half_cs) / scene.c_size);
+		GLuint x1 = std::min(x0 + 1, scene.num_c_x - 2);
+		GLuint y0 = std::floor((py - half_cs) / scene.c_size);
+		GLuint y1 = std::min(y0 + 1, scene.num_c_y - 2);
+		GLuint z0 = std::floor((pz - half_cs) / scene.c_size);
+		GLuint z1 = std::min(z0 + 1, scene.num_c_z - 2);
+
+		// Get dx, dy, and dz (local coordinates of particle in its cell)
+		GLfloat local_x = (px - half_cs - x0 * scene.c_size) / scene.c_size;
+		GLfloat local_y = (py - half_cs - y0 * scene.c_size) / scene.c_size;
+		GLfloat local_z = (pz - half_cs - y0 * scene.c_size) / scene.c_size;
+
+		// Add projection to corners of grid
+		if (x0 < scene.num_c_x && y0 < scene.num_c_y && z0 < scene.num_c_z) 
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (1 - local_x) * (1 - local_y) * (1 - local_z);
+		if (x1 < scene.num_c_x && y0 < scene.num_c_y && z0 < scene.num_c_z)
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (local_x) * (1 - local_y) * (1 - local_z);
+		if (x0 < scene.num_c_x && y1 < scene.num_c_y && z0 < scene.num_c_z)
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (1 - local_x) * (local_y) * (1 - local_z);
+		if (x1 < scene.num_c_x && y1 < scene.num_c_y && z0 < scene.num_c_z)
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (local_x) * (local_y) * (1 - local_z);
+		if (x0 < scene.num_c_x && y0 < scene.num_c_y && z1 < scene.num_c_z)
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (1 - local_x) * (1 - local_y) * (local_z);
+		if (x1 < scene.num_c_x && y0 < scene.num_c_y && z1 < scene.num_c_z)
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (local_x) * (1 - local_y) * (local_z);
+		if (x0 < scene.num_c_x && y1 < scene.num_c_y && z1 < scene.num_c_z)
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (1 - local_x) * (local_y) * (local_z);
+		if (x1 < scene.num_c_x && y1 < scene.num_c_y && z1 < scene.num_c_z)
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (local_x) * (local_y) * (local_z);
+	}
+
+	if (scene.p_rest_density == 0.f) // First time, set default density
+	{
+		GLfloat sum = 0.f;
+		int fluid_cell_num = 0;
+		int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+
+		for (int i = 0; i < cell_num; i++)
+		{
+			if (scene.cell_type[i] == FLUID)
+			{
+				sum += scene.density[i];
+				fluid_cell_num++;
+			}
+		}
+
+		if (fluid_cell_num > 0)
+			scene.p_rest_density = sum / fluid_cell_num;
 	}
 }
 

@@ -4,13 +4,16 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
+
 #include "util.h"
 #include "scene.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 void applyVel(GLfloat dt);
-void checkSolidCellCollision();
+void handleSolidCellCollision();
+void handleParticleParticleCollision();
 
 Scene setupFluidScene();
 
@@ -170,8 +173,9 @@ int main() {
         glDrawArrays(GL_POINTS, 0, scene.num_p);
 
         // Apply forces
-        applyVel(1.f / 2000.f);
-        checkSolidCellCollision();
+        applyVel(1.f / 60.f);
+        handleSolidCellCollision();
+        handleParticleParticleCollision();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -196,7 +200,7 @@ void applyVel(GLfloat dt)
     }
 }
 
-void checkSolidCellCollision()
+void handleSolidCellCollision()
 {
     for (GLuint i = 0; i < scene.num_p * 3; i += 3)
     {
@@ -248,11 +252,105 @@ void checkSolidCellCollision()
     }
 }
 
+void handleParticleParticleCollision()
+{
+    // hashing method taken from Matthias Muller
+    int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+    int* cell_p_count = new int[num_cells]();
+    int* first_cell = new int[num_cells + 1]();
+    int* sorted_particles = new int[scene.num_p];
+
+    for (int i = 0; i < scene.num_p * 3; i += 3)
+    {
+        int x_int = std::floor(scene.particles_pos[i] / scene.num_c_x);
+        int y_int = std::floor(scene.particles_pos[i + 1] / scene.num_c_y);
+        int z_int = std::floor(scene.particles_pos[i + 2] / scene.num_c_z);
+
+        cell_p_count[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int]++;
+    }
+
+    first_cell[0] = cell_p_count[0];
+    for (int i = 1; i < num_cells; i++)
+    {
+        first_cell[i] = first_cell[i - 1];
+        first_cell[i] += cell_p_count[i];
+    }
+    first_cell[num_cells] = first_cell[num_cells - 1];
+
+    for (int i = 0; i < scene.num_p; i++)
+    {
+        int x_int = std::floor(scene.particles_pos[i * 3] / scene.num_c_x);
+        int y_int = std::floor(scene.particles_pos[i * 3 + 1] / scene.num_c_y);
+        int z_int = std::floor(scene.particles_pos[i * 3 + 2] / scene.num_c_z);
+
+        int p_pos = --first_cell[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int];
+        sorted_particles[p_pos] = i;
+    }
+
+    // push particles apart
+    GLfloat min_dist = 2 * scene.p_rad;
+    GLfloat min_dist_sq = min_dist * min_dist;
+
+    for (int i = 0; i < scene.num_p; i++)
+    {
+        GLfloat px = scene.particles_pos[i * 3];
+        GLfloat py = scene.particles_pos[i * 3 + 1];
+        GLfloat pz = scene.particles_pos[i * 3 + 2];
+        int x_int = std::floor(px / scene.num_c_x);
+        int y_int = std::floor(py / scene.num_c_y);
+        int z_int = std::floor(pz / scene.num_c_z);
+
+        int xs = std::max({ x_int - 1, 0 });
+        int xe = std::min({ x_int + 1.f, scene.num_c_x - 1.f });
+        int ys = std::max({ y_int - 1, 0 });
+        int ye = std::min({ y_int + 1.f, scene.num_c_x - 1.f });
+        int zs = std::max({ z_int - 1, 0 });
+        int ze = std::min({ z_int + 1.f, scene.num_c_x - 1.f });
+        
+        // check all particles in the neighborhood around the current cell 
+        for (int xi = xs; xi < xe; xi++)
+            for (int yi = ys; yi < ye; yi++)
+                for (int zi = zs; zi < ze; zi++)
+                {
+                    int start_pos = first_cell[xi * scene.num_c_y * scene.num_c_z + yi * scene.num_c_z + zi];
+                    int end_pos = first_cell[xi * scene.num_c_y * scene.num_c_z + yi * scene.num_c_z + zi + 1];
+
+                    for (int j = start_pos; j < end_pos; j++)
+                    {
+                        int q = sorted_particles[j];
+                        
+                        if (q == i) continue;
+                        
+                        GLfloat qx = scene.particles_pos[q * 3];
+                        GLfloat qy = scene.particles_pos[q * 3 + 1];
+                        GLfloat qz = scene.particles_pos[q * 3 + 2];
+
+                        GLfloat pq_dist_sq = (px - qx) * (px - qx) + (py - qy) * (py - qy) + (pz - qz) * (pz - qz);
+                        if (pq_dist_sq > min_dist_sq) continue;
+
+                        GLfloat pq_dist = std::sqrt(pq_dist_sq);
+                        GLfloat push_factor = 0.5f * (min_dist - pq_dist) / pq_dist;
+
+                        GLfloat push_x = (px - qx) * push_factor;
+                        GLfloat push_y = (py - qy) * push_factor;
+                        GLfloat push_z = (pz - qz) * push_factor;
+
+                        scene.particles_pos[i * 3] += push_x;
+                        scene.particles_pos[q * 3] -= push_x;
+                        scene.particles_pos[i * 3 + 1] += push_y;
+                        scene.particles_pos[q * 3 + 1] -= push_y;
+                        scene.particles_pos[i * 3 + 2] += push_z;
+                        scene.particles_pos[q * 3 + 2] -= push_z;
+                    }
+                }
+    }
+}
+
 Scene setupFluidScene()
 {
-    const GLuint num_p_x = 32;
-    const GLuint num_p_y = 32;
-    const GLuint num_p_z = 32;
+    const GLuint num_p_x = 16;
+    const GLuint num_p_y = 16;
+    const GLuint num_p_z = 16;
     const GLuint num_c_x = 20;
     const GLuint num_c_y = 20;
     const GLuint num_c_z = 20;
@@ -261,7 +359,7 @@ Scene setupFluidScene()
     const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
     const GLfloat p_rad = 0.005f; // particle radius
-    const GLfloat cell_size = 0.6 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to [0, 0.6] coordinates (arbitrary choice)
+    const GLfloat cell_size = 0.6 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
     Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, cell_size);
 

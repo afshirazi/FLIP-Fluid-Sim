@@ -178,15 +178,15 @@ int main() {
 		glDrawArrays(GL_POINTS, 0, scene.num_p);
 
 		// Apply forces/adjustments
-		applyVel(1.f / 60.f);
+		applyVel(1.f / 120.f);
 		handleSolidCellCollision();
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
-		//updateDensity();
-		//solveIncompressibility(100, 1.f / 60.f, 1.9f, false);
+		updateDensity();
+		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		std::cout << scene.particles_pos[1] << " " << scene.particles_vel[1] << std::endl;
+		std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << " " << scene.particles_pos[2] << " " << scene.particles_vel[2] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -651,7 +651,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 					float div = scene.u[right] - scene.u[center] + scene.v[top] - scene.v[center] + scene.w[back] - scene.w[center];
 
 					if (scene.p_rest_density > 0.0f && compensateDrift) {
-						float k = 0.0001f;
+						float k = 1.f;
 						float compression = scene.density[center] - scene.p_rest_density;
 						if (compression > 0.0f)
 							div = div - k * compression;
@@ -695,11 +695,11 @@ Scene setupFluidScene()
 		for (int j = 0; j < num_p_y; j++)
 			for (int k = 0; k < num_p_z; k++)
 			{
-				//scene.particles_vel[particle] = 0.5f;
+				//scene.particles_vel[particle] = 0.01f;
 				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
 				//scene.particles_vel[particle] = 0.001f;
 				scene.particles_pos[particle++] = 0.3f + p_rad + 2 * j * p_rad;
-				//scene.particles_vel[particle] = 0.5f;
+				//scene.particles_vel[particle] = 0.01f;
 				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
 			}
 

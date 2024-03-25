@@ -182,9 +182,11 @@ int main() {
 		handleSolidCellCollision();
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
-		updateDensity();
-		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
+		//updateDensity();
+		//solveIncompressibility(100, 1.f / 60.f, 1.9f, false);
 		transferVelocities(false, 0.9f);
+
+		std::cout << scene.particles_pos[1] << " " << scene.particles_vel[1] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -376,6 +378,8 @@ void handleParticleParticleCollision()
 void updateDensity()
 {
 	GLfloat half_cs = 0.5 * scene.c_size;
+	int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+	std::fill(scene.density, scene.density + cell_num, 0.f);
 
 	for (int i = 0; i < scene.num_p; i += 3)
 	{
@@ -386,9 +390,9 @@ void updateDensity()
 		if (px < scene.c_size) px = scene.c_size;
 		if (px > scene.c_size * (scene.num_c_x - 1)) px = scene.c_size * (scene.num_c_x - 1);
 		if (py < scene.c_size) py = scene.c_size;
-		if (px > scene.c_size * (scene.num_c_y - 1)) py = scene.c_size * (scene.num_c_y - 1);
+		if (py > scene.c_size * (scene.num_c_y - 1)) py = scene.c_size * (scene.num_c_y - 1);
 		if (pz < scene.c_size) pz = scene.c_size;
-		if (px > scene.c_size * (scene.num_c_z - 1)) pz = scene.c_size * (scene.num_c_z - 1);
+		if (pz > scene.c_size * (scene.num_c_z - 1)) pz = scene.c_size * (scene.num_c_z - 1);
 
 		// Get corners of grid
 		GLuint x0 = std::floor((px - half_cs) / scene.c_size);
@@ -401,7 +405,7 @@ void updateDensity()
 		// Get dx, dy, and dz (local coordinates of particle in its cell)
 		GLfloat local_x = (px - half_cs - x0 * scene.c_size) / scene.c_size;
 		GLfloat local_y = (py - half_cs - y0 * scene.c_size) / scene.c_size;
-		GLfloat local_z = (pz - half_cs - y0 * scene.c_size) / scene.c_size;
+		GLfloat local_z = (pz - half_cs - z0 * scene.c_size) / scene.c_size;
 
 		// Add projection to corners of grid
 		if (x0 < scene.num_c_x && y0 < scene.num_c_y && z0 < scene.num_c_z) 
@@ -430,7 +434,7 @@ void updateDensity()
 
 		for (int i = 0; i < cell_num; i++)
 		{
-			if (scene.cell_type[i] == FLUID)
+			if (scene.cell_type[i] == FLUID && scene.density[i] > 0.f)
 			{
 				sum += scene.density[i];
 				fluid_cell_num++;
@@ -647,7 +651,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 					float div = scene.u[right] - scene.u[center] + scene.v[top] - scene.v[center] + scene.w[back] - scene.w[center];
 
 					if (scene.p_rest_density > 0.0f && compensateDrift) {
-						float k = 1.0f;
+						float k = 0.0001f;
 						float compression = scene.density[center] - scene.p_rest_density;
 						if (compression > 0.0f)
 							div = div - k * compression;
@@ -674,15 +678,15 @@ Scene setupFluidScene()
 	const GLuint num_p_x = 16;
 	const GLuint num_p_y = 16;
 	const GLuint num_p_z = 16;
-	const GLuint num_c_x = 20;
-	const GLuint num_c_y = 20;
-	const GLuint num_c_z = 20;
+	const GLuint num_c_x = 12;
+	const GLuint num_c_y = 12;
+	const GLuint num_c_z = 12;
 
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
 	const GLfloat p_rad = 0.0045f; // particle radius
-	const GLfloat cell_size = 0.6 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
+	const GLfloat cell_size = 0.4 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, cell_size);
 
@@ -691,8 +695,11 @@ Scene setupFluidScene()
 		for (int j = 0; j < num_p_y; j++)
 			for (int k = 0; k < num_p_z; k++)
 			{
+				//scene.particles_vel[particle] = 0.5f;
 				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
-				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * j * p_rad;
+				//scene.particles_vel[particle] = 0.001f;
+				scene.particles_pos[particle++] = 0.3f + p_rad + 2 * j * p_rad;
+				//scene.particles_vel[particle] = 0.5f;
 				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
 			}
 
@@ -700,11 +707,12 @@ Scene setupFluidScene()
 		for (int j = 0; j < num_c_y; j++)
 			for (int k = 0; k < num_c_z; k++)
 			{
-				CellType curr_c_type = FLUID;
+				CellType curr_c_type = AIR;
 				if (i == 0 || i == num_c_x - 1 || j == 0 || k == 0 || k == num_c_z - 1)
 					curr_c_type = SOLID;
 
 				scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
+				scene.s[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type == SOLID ? 0.f : 1.f;
 			}
 
 	return scene;

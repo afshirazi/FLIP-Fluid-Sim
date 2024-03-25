@@ -140,7 +140,7 @@ int main() {
 	// Transformations for particles
 	view = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.67, 0.67, 0.67));
-	view = glm::translate(view, glm::vec3(0.5f, 0.1f, -1.1f));
+	view = glm::translate(view, glm::vec3(0.2f, 0.1f, -1.1f));
 	particles_transform = proj * view * model;
 
 	GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");

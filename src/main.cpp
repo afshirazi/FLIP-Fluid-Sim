@@ -231,32 +231,32 @@ void handleSolidCellCollision()
 
 		if (x_pos < min_pos)
 		{
-			scene.particles_pos[i] = min_pos;
-			scene.particles_vel[i] = 0.f;
+			scene.particles_pos[3 * i] = min_pos;
+			scene.particles_vel[3 * i] = 0.f;
 		}
 
 		if (y_pos < min_pos)
 		{
-			scene.particles_pos[i + 1] = min_pos;
-			scene.particles_vel[i + 1] = 0.f;
+			scene.particles_pos[3 * i + 1] = min_pos;
+			scene.particles_vel[3 * i + 1] = 0.f;
 		}
 
 		if (z_pos < min_pos)
 		{
-			scene.particles_pos[i + 2] = min_pos;
-			scene.particles_vel[i + 2] = 0.f;
+			scene.particles_pos[3 * i + 2] = min_pos;
+			scene.particles_vel[3 * i + 2] = 0.f;
 		}
 
 		if (x_pos > max_pos_x)
 		{
-			scene.particles_pos[i] = max_pos_x;
-			scene.particles_vel[i] = 0.f;
+			scene.particles_pos[3 * i] = max_pos_x;
+			scene.particles_vel[3 * i] = 0.f;
 		}
 
 		if (z_pos > max_pos_z)
 		{
-			scene.particles_pos[i + 2] = max_pos_z;
-			scene.particles_vel[i + 2] = 0.f;
+			scene.particles_pos[3 * i + 2] = max_pos_z;
+			scene.particles_vel[3 * i + 2] = 0.f;
 		}
 	}
 }
@@ -505,11 +505,11 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			GLfloat tx = ((x - dx) - x0 * scene.c_size) / scene.c_size;
 			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 3));
 
-			int y0 = std::min(static_cast<int>(std::floor((y - dy) * scene.c_size)), static_cast<int>(scene.num_c_y - 3));
+			int y0 = std::min(static_cast<int>(std::floor((y - dy) / scene.c_size)), static_cast<int>(scene.num_c_y - 3));
 			GLfloat ty = ((y - dy) - y0 * scene.c_size) / scene.c_size;
 			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 3));
 
-			int z0 = std::min(static_cast<int>(std::floor((z - dz) * scene.c_size)), static_cast<int>(scene.num_c_z - 3));
+			int z0 = std::min(static_cast<int>(std::floor((z - dz) / scene.c_size)), static_cast<int>(scene.num_c_z - 3));
 			GLfloat tz = ((z - dz) - z0 * scene.c_size) / scene.c_size;
 			int z1 = std::min(z0 + 1, static_cast<int>(scene.num_c_z - 3));
 

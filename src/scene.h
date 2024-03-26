@@ -27,6 +27,7 @@ struct Scene {
     GLfloat p_rad; // radius of particle
     GLfloat c_size; // volume of each individual grid
     GLfloat p_rest_density; // density of particles at initiation
+    GLfloat p_density;
 
     Scene() = default;
     Scene(GLuint num_particles, GLuint num_cells_x, GLuint num_cells_y, GLuint num_cells_z, GLfloat particle_radius, GLfloat cell_size)
@@ -54,6 +55,7 @@ struct Scene {
         num_c_z = num_cells_z;
         p_rad = particle_radius;
         c_size = cell_size;
+        p_density = 1000.f;
         p_rest_density = 0.f;
     }
 };

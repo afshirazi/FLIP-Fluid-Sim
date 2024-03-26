@@ -184,7 +184,7 @@ int main() {
 		transferVelocities(true, 0.0f);
 		updateDensity();
 		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
-		transferVelocities(false, 0.9f);
+		//transferVelocities(false, 0.9f);
 
 		std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << " " << scene.particles_pos[2] << " " << scene.particles_vel[2] << std::endl;
 
@@ -202,22 +202,22 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void applyVel(GLfloat dt)
 {
-	for (GLuint i = 0; i < scene.num_p * 3; i += 3)
+	for (GLuint i = 0; i < scene.num_p; i ++)
 	{
-		scene.particles_pos[i] += scene.particles_vel[i] * dt;
-		scene.particles_vel[i + 1] -= 9.82f * dt;
-		scene.particles_pos[i + 1] += scene.particles_vel[i + 1] * dt;
-		scene.particles_pos[i + 2] += scene.particles_vel[i + 2] * dt;
+		scene.particles_pos[3 * i] += scene.particles_vel[3 * i] * dt;
+		scene.particles_vel[3 * i + 1] -= 9.82f * dt;
+		scene.particles_pos[3 * i + 1] += scene.particles_vel[3 * i + 1] * dt;
+		scene.particles_pos[3 * i + 2] += scene.particles_vel[3 * i + 2] * dt;
 	}
 }
 
 void handleSolidCellCollision()
 {
-	for (GLuint i = 0; i < scene.num_p * 3; i += 3)
+	for (GLuint i = 0; i < scene.num_p; i ++)
 	{
-		const GLfloat x_pos = scene.particles_pos[i];
-		const GLfloat y_pos = scene.particles_pos[i + 1];
-		const GLfloat z_pos = scene.particles_pos[i + 2];
+		const GLfloat x_pos = scene.particles_pos[3 * i];
+		const GLfloat y_pos = scene.particles_pos[3 * i + 1];
+		const GLfloat z_pos = scene.particles_pos[3 * i + 2];
 
 
 		/*
@@ -271,11 +271,11 @@ void handleParticleParticleCollision()
 	int* first_cell = new int[num_cells + 1]();
 	int* sorted_particles = new int[scene.num_p];
 
-	for (int i = 0; i < scene.num_p * 3; i += 3)
+	for (int i = 0; i < scene.num_p; i ++)
 	{
-		int x_int = std::floor(scene.particles_pos[i] / scene.num_c_x);
-		int y_int = std::floor(scene.particles_pos[i + 1] / scene.num_c_y);
-		int z_int = std::floor(scene.particles_pos[i + 2] / scene.num_c_z);
+		int x_int = std::floor(scene.particles_pos[3 * i] / scene.num_c_x);
+		int y_int = std::floor(scene.particles_pos[3 * i + 1] / scene.num_c_y);
+		int z_int = std::floor(scene.particles_pos[3 * i + 2] / scene.num_c_z);
 
 		if (x_int < 0) x_int = 0;
 		if (x_int > scene.num_c_x) x_int = scene.num_c_x;
@@ -381,11 +381,11 @@ void updateDensity()
 	int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 	std::fill(scene.density, scene.density + cell_num, 0.f);
 
-	for (int i = 0; i < scene.num_p; i += 3)
+	for (int i = 0; i < scene.num_p; i++)
 	{
-		GLfloat px = scene.particles_pos[i];
-		GLfloat py = scene.particles_pos[i + 1];
-		GLfloat pz = scene.particles_pos[i + 2];
+		GLfloat px = scene.particles_pos[3 * i];
+		GLfloat py = scene.particles_pos[3 * i + 1];
+		GLfloat pz = scene.particles_pos[3 * i + 2];
 
 		if (px < scene.c_size) px = scene.c_size;
 		if (px > scene.c_size * (scene.num_c_x - 1)) px = scene.c_size * (scene.num_c_x - 1);
@@ -503,17 +503,17 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			y = glm::clamp(y, scene.c_size, (scene.num_c_y - 1) * scene.c_size);
 			z = glm::clamp(z, scene.c_size, (scene.num_c_z - 1) * scene.c_size);
 
-			int x0 = std::min(static_cast<int>(std::floor((x - dx) / scene.c_size)), static_cast<int>(scene.num_c_x - 2));
+			int x0 = std::min(static_cast<int>(std::floor((x - dx) / scene.c_size)), static_cast<int>(scene.num_c_x - 3));
 			GLfloat tx = ((x - dx) - x0 * scene.c_size) / scene.c_size;
-			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 2));
+			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 3));
 
-			int y0 = std::min(static_cast<int>(std::floor((y - dy) * scene.c_size)), static_cast<int>(scene.num_c_y - 2));
+			int y0 = std::min(static_cast<int>(std::floor((y - dy) * scene.c_size)), static_cast<int>(scene.num_c_y - 3));
 			GLfloat ty = ((y - dy) - y0 * scene.c_size) / scene.c_size;
-			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 2));
+			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 3));
 
-			int z0 = std::min(static_cast<int>(std::floor((z - dz) * scene.c_size)), static_cast<int>(scene.num_c_z - 2));
+			int z0 = std::min(static_cast<int>(std::floor((z - dz) * scene.c_size)), static_cast<int>(scene.num_c_z - 3));
 			GLfloat tz = ((z - dz) - z0 * scene.c_size) / scene.c_size;
-			int z1 = std::min(z0 + 1, static_cast<int>(scene.num_c_z - 2));
+			int z1 = std::min(z0 + 1, static_cast<int>(scene.num_c_z - 3));
 
 			GLfloat sx = 1.0f - tx;
 			GLfloat sy = 1.0f - ty;
@@ -620,7 +620,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 	std::copy(scene.w, scene.w + cell_num, scene.prevW);
 
 	int n = scene.num_c_y;
-	float cp = scene.p_rest_density * scene.c_size / dt;
+	float cp = scene.p_density * scene.c_size / dt;
 
 	for (int iter = 0; iter < numIters; ++iter) {
 		for (int i = 1; i < scene.num_c_x - 1; ++i) {

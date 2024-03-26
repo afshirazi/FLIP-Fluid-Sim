@@ -140,7 +140,7 @@ int main() {
 	// Transformations for particles
 	view = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.67, 0.67, 0.67));
-	view = glm::translate(view, glm::vec3(0.2f, 0.1f, -1.1f));
+	view = glm::translate(view, glm::vec3(0.5f, 0.1f, -1.1f));
 	particles_transform = proj * view * model;
 
 	GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");
@@ -184,9 +184,7 @@ int main() {
 		transferVelocities(true, 0.0f);
 		updateDensity();
 		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
-		//transferVelocities(false, 0.9f);
-
-		std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << " " << scene.particles_pos[2] << " " << scene.particles_vel[2] << std::endl;
+		transferVelocities(false, 0.9f);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -202,7 +200,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void applyVel(GLfloat dt)
 {
-	for (GLuint i = 0; i < scene.num_p; i ++)
+	for (GLuint i = 0; i < scene.num_p; i++)
 	{
 		scene.particles_pos[3 * i] += scene.particles_vel[3 * i] * dt;
 		scene.particles_vel[3 * i + 1] -= 9.82f * dt;
@@ -213,7 +211,7 @@ void applyVel(GLfloat dt)
 
 void handleSolidCellCollision()
 {
-	for (GLuint i = 0; i < scene.num_p; i ++)
+	for (GLuint i = 0; i < scene.num_p; i++)
 	{
 		const GLfloat x_pos = scene.particles_pos[3 * i];
 		const GLfloat y_pos = scene.particles_pos[3 * i + 1];

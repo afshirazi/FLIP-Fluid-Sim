@@ -180,13 +180,13 @@ int main() {
 		// Apply forces/adjustments
 		applyVel(1.f / 120.f);
 		handleSolidCellCollision();
-		//handleParticleParticleCollision();
+		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
-		solveIncompressibility(100, 1.f / 120.f, 1.9f, false);
+		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
+		//std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -258,8 +258,8 @@ void handleSolidCellCollision()
 
 		if (x_pos > max_pos_y)
 		{
-			//scene.particles_pos[3 * i + 1] = max_pos_y;
-			//scene.particles_vel[3 * i + 1] = 0.f;
+			scene.particles_pos[3 * i + 1] = max_pos_y;
+			scene.particles_vel[3 * i + 1] = 0.f;
 		}
 
 		if (z_pos > max_pos_z)
@@ -416,21 +416,21 @@ void updateDensity()
 
 		// Add projection to corners of grid
 		if (x0 < scene.num_c_x && y0 < scene.num_c_y && z0 < scene.num_c_z) 
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (1 - local_x) * (1 - local_y) * (1 - local_z);
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (1 - local_x) * (1 - local_y) * (1 - local_z) * scene.p_mass;
 		if (x1 < scene.num_c_x && y0 < scene.num_c_y && z0 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (local_x) * (1 - local_y) * (1 - local_z);
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (local_x) * (1 - local_y) * (1 - local_z) * scene.p_mass;
 		if (x0 < scene.num_c_x && y1 < scene.num_c_y && z0 < scene.num_c_z)
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (1 - local_x) * (local_y) * (1 - local_z);
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (1 - local_x) * (local_y) * (1 - local_z) * scene.p_mass;
 		if (x1 < scene.num_c_x && y1 < scene.num_c_y && z0 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (local_x) * (local_y) * (1 - local_z);
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (local_x) * (local_y) * (1 - local_z) * scene.p_mass;
 		if (x0 < scene.num_c_x && y0 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (1 - local_x) * (1 - local_y) * (local_z);
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (1 - local_x) * (1 - local_y) * (local_z) * scene.p_mass;
 		if (x1 < scene.num_c_x && y0 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (local_x) * (1 - local_y) * (local_z);
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (local_x) * (1 - local_y) * (local_z)*scene.p_mass;
 		if (x0 < scene.num_c_x && y1 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (1 - local_x) * (local_y) * (local_z);
+			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (1 - local_x) * (local_y) * (local_z)*scene.p_mass;
 		if (x1 < scene.num_c_x && y1 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (local_x) * (local_y) * (local_z);
+			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (local_x) * (local_y) * (local_z)*scene.p_mass;
 	}
 
 	if (scene.p_rest_density == 0.f) // First time, set default density
@@ -526,14 +526,14 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			GLfloat sy = 1.0f - ty;
 			GLfloat sz = 1.0f - tz;
 
-			GLfloat d0 = sx * sy * sz;
-			GLfloat d1 = tx * sy * sz;
-			GLfloat d2 = tx * ty * sz;
-			GLfloat d3 = sx * ty * sz;
-			GLfloat d4 = sx * sy * tz;
-			GLfloat d5 = tx * sy * tz;
-			GLfloat d6 = tx * ty * tz;
-			GLfloat d7 = sx * ty * tz;
+			GLfloat d0 = sx * sy * sz * scene.p_mass;
+			GLfloat d1 = tx * sy * sz * scene.p_mass;
+			GLfloat d2 = tx * ty * sz * scene.p_mass;
+			GLfloat d3 = sx * ty * sz * scene.p_mass;
+			GLfloat d4 = sx * sy * tz * scene.p_mass;
+			GLfloat d5 = tx * sy * tz * scene.p_mass;
+			GLfloat d6 = tx * ty * tz * scene.p_mass;
+			GLfloat d7 = sx * ty * tz * scene.p_mass;
 
 			int nr0 = x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0;
 			int nr1 = x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0;
@@ -693,18 +693,19 @@ Scene setupFluidScene()
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
 	const GLfloat p_rad = 0.0045f; // particle radius
+	const GLfloat p_mass = 0.09f; 
 	const GLfloat cell_size = 0.4 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
-	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, cell_size);
+	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);
 
 	int particle = 0;
 	for (int i = 0; i < num_p_x; i++)
 		for (int j = 0; j < num_p_y; j++)
 			for (int k = 0; k < num_p_z; k++)
 			{
-				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
-				scene.particles_pos[particle++] = 0.3f + p_rad + 2 * j * p_rad;
-				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
+				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
+				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * j * p_rad;
+				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
 			}
 
 	for (int i = 0; i < num_c_x; i++)

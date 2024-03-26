@@ -180,11 +180,13 @@ int main() {
 		// Apply forces/adjustments
 		applyVel(1.f / 120.f);
 		handleSolidCellCollision();
-		handleParticleParticleCollision();
+		//handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
-		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
+		solveIncompressibility(100, 1.f / 120.f, 1.9f, false);
 		transferVelocities(false, 0.9f);
+
+		std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -227,6 +229,7 @@ void handleSolidCellCollision()
 		*/
 		GLfloat min_pos = scene.c_size + scene.p_rad;
 		GLfloat max_pos_x = scene.c_size * (scene.num_c_x - 1) - scene.p_rad;
+		GLfloat max_pos_y = scene.c_size * (scene.num_c_y - 1) - scene.p_rad;
 		GLfloat max_pos_z = scene.c_size * (scene.num_c_z - 1) - scene.p_rad;
 
 		if (x_pos < min_pos)
@@ -251,6 +254,12 @@ void handleSolidCellCollision()
 		{
 			scene.particles_pos[3 * i] = max_pos_x;
 			scene.particles_vel[3 * i] = 0.f;
+		}
+
+		if (x_pos > max_pos_y)
+		{
+			//scene.particles_pos[3 * i + 1] = max_pos_y;
+			//scene.particles_vel[3 * i + 1] = 0.f;
 		}
 
 		if (z_pos > max_pos_z)
@@ -501,15 +510,15 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			y = glm::clamp(y, scene.c_size, (scene.num_c_y - 1) * scene.c_size);
 			z = glm::clamp(z, scene.c_size, (scene.num_c_z - 1) * scene.c_size);
 
-			int x0 = std::min(static_cast<int>(std::floor((x - dx) / scene.c_size)), static_cast<int>(scene.num_c_x - 3));
+			int x0 = std::min(static_cast<int>(std::floor((x - dx) / scene.c_size)), static_cast<int>(scene.num_c_x - 2));
 			GLfloat tx = ((x - dx) - x0 * scene.c_size) / scene.c_size;
 			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 3));
 
-			int y0 = std::min(static_cast<int>(std::floor((y - dy) / scene.c_size)), static_cast<int>(scene.num_c_y - 3));
+			int y0 = std::min(static_cast<int>(std::floor((y - dy) / scene.c_size)), static_cast<int>(scene.num_c_y - 2));
 			GLfloat ty = ((y - dy) - y0 * scene.c_size) / scene.c_size;
 			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 3));
 
-			int z0 = std::min(static_cast<int>(std::floor((z - dz) / scene.c_size)), static_cast<int>(scene.num_c_z - 3));
+			int z0 = std::min(static_cast<int>(std::floor((z - dz) / scene.c_size)), static_cast<int>(scene.num_c_z - 2));
 			GLfloat tz = ((z - dz) - z0 * scene.c_size) / scene.c_size;
 			int z1 = std::min(z0 + 1, static_cast<int>(scene.num_c_z - 3));
 
@@ -676,9 +685,9 @@ Scene setupFluidScene()
 	const GLuint num_p_x = 16;
 	const GLuint num_p_y = 16;
 	const GLuint num_p_z = 16;
-	const GLuint num_c_x = 12;
-	const GLuint num_c_y = 12;
-	const GLuint num_c_z = 12;
+	const GLuint num_c_x = 13;
+	const GLuint num_c_y = 13;
+	const GLuint num_c_z = 13;
 
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
@@ -693,11 +702,8 @@ Scene setupFluidScene()
 		for (int j = 0; j < num_p_y; j++)
 			for (int k = 0; k < num_p_z; k++)
 			{
-				//scene.particles_vel[particle] = 0.01f;
 				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
-				//scene.particles_vel[particle] = 0.001f;
 				scene.particles_pos[particle++] = 0.3f + p_rad + 2 * j * p_rad;
-				//scene.particles_vel[particle] = 0.01f;
 				scene.particles_pos[particle++] = 0.1f + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
 			}
 

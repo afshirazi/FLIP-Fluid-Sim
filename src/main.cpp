@@ -186,7 +186,7 @@ int main() {
 		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		//std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
+		std::cout << scene.particles_pos[1] << " " << scene.particles_vel[0] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -256,7 +256,7 @@ void handleSolidCellCollision()
 			scene.particles_vel[3 * i] = 0.f;
 		}
 
-		if (x_pos > max_pos_y)
+		if (y_pos > max_pos_y)
 		{
 			scene.particles_pos[3 * i + 1] = max_pos_y;
 			scene.particles_vel[3 * i + 1] = 0.f;
@@ -692,8 +692,8 @@ Scene setupFluidScene()
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
-	const GLfloat p_rad = 0.0045f; // particle radius
-	const GLfloat p_mass = 0.09f; 
+	const GLfloat p_rad = 0.005f; // particle radius
+	const GLfloat p_mass = 0.1f; 
 	const GLfloat cell_size = 0.4 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);

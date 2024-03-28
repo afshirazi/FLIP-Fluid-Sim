@@ -139,7 +139,7 @@ int main() {
 
 	// Transformations for particles
 	view = glm::mat4(1.0f);
-	model = glm::scale(model, glm::vec3(0.67, 0.67, 0.67));
+	model = glm::scale(model, glm::vec3(0.3, 0.3, 0.3));
 	view = glm::translate(view, glm::vec3(0.5f, 0.1f, -1.1f));
 	particles_transform = proj * view * model;
 
@@ -183,7 +183,7 @@ int main() {
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
-		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
+		solveIncompressibility(400, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
 		std::cout << scene.particles_pos[1] << " " << scene.particles_vel[0] << std::endl;
@@ -453,6 +453,16 @@ void updateDensity()
 	}
 }
 
+// taken from Bridson
+GLfloat trihat_func(GLfloat r)
+{
+	if (r > 1 || r < -1)
+		return 0.f;
+	if (r >= 0)
+		return 1 + r;
+	return 1 - r;
+}
+
 void transferVelocities(bool toGrid, GLfloat flipRatio)
 {
 	GLfloat half_cs = 0.5 * scene.c_size;
@@ -500,6 +510,7 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 		f = (component == 0) ? scene.u : ((component == 1) ? scene.v : scene.w);
 		GLfloat* prevF = (component == 0) ? scene.prevU : ((component == 1) ? scene.prevV : scene.prevW);
 		d = (component == 0) ? scene.du : ((component == 1) ? scene.dv : scene.dw);
+		GLfloat *weight = new GLfloat[scene.num_c_x * scene.num_c_y * scene.num_c_z];
 
 		for (int i = 0; i < scene.num_p; ++i) {
 			GLfloat x = scene.particles_pos[3 * i];
@@ -591,6 +602,8 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 				}
 			}
 		}
+
+		delete[] weight;
 	}
 
 	if (toGrid) {
@@ -658,9 +671,9 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 					float div = scene.u[right] - scene.u[center] + scene.v[top] - scene.v[center] + scene.w[back] - scene.w[center];
 
 					if (scene.p_rest_density > 0.0f && compensateDrift) {
-						float k = 1.f;
+						float k = 1.f; // TODO change k
 						float compression = scene.density[center] - scene.p_rest_density;
-						if (compression > 0.0f)
+						if (compression != 0.0f)
 							div = div - k * compression;
 					}
 
@@ -692,9 +705,9 @@ Scene setupFluidScene()
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
-	const GLfloat p_rad = 0.005f; // particle radius
-	const GLfloat p_mass = 0.1f; 
-	const GLfloat cell_size = 0.4 / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
+	const GLfloat p_rad = 0.05f; // particle radius
+	const GLfloat p_mass = 0.f;
+	const GLfloat cell_size = 1.f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);
 

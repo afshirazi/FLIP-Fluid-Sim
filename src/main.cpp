@@ -186,7 +186,7 @@ int main() {
 		solveIncompressibility(400, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		std::cout << scene.particles_pos[1] << " " << scene.particles_vel[0] << std::endl;
+		std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -207,7 +207,6 @@ void applyVel(GLfloat dt)
 		scene.particles_pos[3 * i] += scene.particles_vel[3 * i] * dt;
 		scene.particles_vel[3 * i + 1] -= 9.82f * dt;
 		scene.particles_pos[3 * i + 1] += scene.particles_vel[3 * i + 1] * dt;
-		scene.particles_pos[3 * i + 2] += scene.particles_vel[3 * i + 2] * dt;
 	}
 }
 
@@ -217,8 +216,6 @@ void handleSolidCellCollision()
 	{
 		const GLfloat x_pos = scene.particles_pos[3 * i];
 		const GLfloat y_pos = scene.particles_pos[3 * i + 1];
-		const GLfloat z_pos = scene.particles_pos[3 * i + 2];
-
 
 		/*
 		* For cell walls checking
@@ -230,7 +227,6 @@ void handleSolidCellCollision()
 		GLfloat min_pos = scene.c_size + scene.p_rad;
 		GLfloat max_pos_x = scene.c_size * (scene.num_c_x - 1) - scene.p_rad;
 		GLfloat max_pos_y = scene.c_size * (scene.num_c_y - 1) - scene.p_rad;
-		GLfloat max_pos_z = scene.c_size * (scene.num_c_z - 1) - scene.p_rad;
 
 		if (x_pos < min_pos)
 		{
@@ -244,54 +240,35 @@ void handleSolidCellCollision()
 			scene.particles_vel[3 * i + 1] = 0.f;
 		}
 
-		if (z_pos < min_pos)
-		{
-			scene.particles_pos[3 * i + 2] = min_pos;
-			scene.particles_vel[3 * i + 2] = 0.f;
-		}
-
 		if (x_pos > max_pos_x)
 		{
 			scene.particles_pos[3 * i] = max_pos_x;
 			scene.particles_vel[3 * i] = 0.f;
 		}
 
-		if (y_pos > max_pos_y)
-		{
-			scene.particles_pos[3 * i + 1] = max_pos_y;
-			scene.particles_vel[3 * i + 1] = 0.f;
-		}
-
-		if (z_pos > max_pos_z)
-		{
-			scene.particles_pos[3 * i + 2] = max_pos_z;
-			scene.particles_vel[3 * i + 2] = 0.f;
-		}
+		
 	}
 }
 
 void handleParticleParticleCollision()
 {
 	// hashing method taken from Matthias Muller
-	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+	int num_cells = scene.num_c_x * scene.num_c_y;
 	int* cell_p_count = new int[num_cells]();
 	int* first_cell = new int[num_cells + 1]();
 	int* sorted_particles = new int[scene.num_p];
 
-	for (int i = 0; i < scene.num_p; i ++)
+	for (int i = 0; i < scene.num_p; i++)
 	{
-		int x_int = std::floor(scene.particles_pos[3 * i] / scene.num_c_x);
-		int y_int = std::floor(scene.particles_pos[3 * i + 1] / scene.num_c_y);
-		int z_int = std::floor(scene.particles_pos[3 * i + 2] / scene.num_c_z);
+		int x_int = std::floor(scene.particles_pos[3 * i] / scene.c_size);
+		int y_int = std::floor(scene.particles_pos[3 * i + 1] / scene.c_size);
 
 		if (x_int < 0) x_int = 0;
-		if (x_int > scene.num_c_x) x_int = scene.num_c_x;
+		if (x_int > scene.num_c_x) x_int = scene.num_c_x - 1;
 		if (y_int < 0) y_int = 0;
-		if (y_int > scene.num_c_y) y_int = scene.num_c_y;
-		if (z_int < 0) z_int = 0;
-		if (z_int > scene.num_c_z) z_int = scene.num_c_z;
+		if (y_int > scene.num_c_y) y_int = scene.num_c_y - 1;
 
-		cell_p_count[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int]++;
+		cell_p_count[x_int * scene.num_c_y + y_int]++;
 	}
 
 	first_cell[0] = cell_p_count[0];
@@ -304,18 +281,15 @@ void handleParticleParticleCollision()
 
 	for (int i = 0; i < scene.num_p; i++)
 	{
-		int x_int = std::floor(scene.particles_pos[i * 3] / scene.num_c_x);
-		int y_int = std::floor(scene.particles_pos[i * 3 + 1] / scene.num_c_y);
-		int z_int = std::floor(scene.particles_pos[i * 3 + 2] / scene.num_c_z);
+		int x_int = std::floor(scene.particles_pos[i * 3] / scene.c_size);
+		int y_int = std::floor(scene.particles_pos[i * 3 + 1] / scene.c_size);
 
 		if (x_int < 0) x_int = 0;
 		if (x_int > scene.num_c_x) x_int = scene.num_c_x;
 		if (y_int < 0) y_int = 0;
 		if (y_int > scene.num_c_y) y_int = scene.num_c_y;
-		if (z_int < 0) z_int = 0;
-		if (z_int > scene.num_c_z) z_int = scene.num_c_z;
 
-		int p_pos = --first_cell[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int];
+		int p_pos = --first_cell[x_int * scene.num_c_y + y_int];
 		sorted_particles[p_pos] = i;
 	}
 
@@ -328,116 +302,93 @@ void handleParticleParticleCollision()
 	{
 		GLfloat px = scene.particles_pos[i * 3];
 		GLfloat py = scene.particles_pos[i * 3 + 1];
-		GLfloat pz = scene.particles_pos[i * 3 + 2];
 		int x_int = std::floor(px / scene.num_c_x);
 		int y_int = std::floor(py / scene.num_c_y);
-		int z_int = std::floor(pz / scene.num_c_z);
 
 		int xs = std::max({ x_int - 1, 0 });
 		int xe = std::min({ x_int + 1.f, scene.num_c_x - 1.f });
 		int ys = std::max({ y_int - 1, 0 });
 		int ye = std::min({ y_int + 1.f, scene.num_c_x - 1.f });
-		int zs = std::max({ z_int - 1, 0 });
-		int ze = std::min({ z_int + 1.f, scene.num_c_x - 1.f });
 
 		// check all particles in the neighborhood around the current cell 
 		for (int xi = xs; xi < xe; xi++)
 			for (int yi = ys; yi < ye; yi++)
-				for (int zi = zs; zi < ze; zi++)
+			{
+				int start_pos = first_cell[xi * scene.num_c_y  + yi ];
+				int end_pos = first_cell[xi * scene.num_c_y  + yi];
+
+				for (int j = start_pos; j < end_pos; j++)
 				{
-					int start_pos = first_cell[xi * scene.num_c_y * scene.num_c_z + yi * scene.num_c_z + zi];
-					int end_pos = first_cell[xi * scene.num_c_y * scene.num_c_z + yi * scene.num_c_z + zi + 1];
+					int q = sorted_particles[j];
 
-					for (int j = start_pos; j < end_pos; j++)
-					{
-						int q = sorted_particles[j];
+					if (q == i) continue;
 
-						if (q == i) continue;
+					GLfloat qx = scene.particles_pos[q * 3];
+					GLfloat qy = scene.particles_pos[q * 3 + 1];
 
-						GLfloat qx = scene.particles_pos[q * 3];
-						GLfloat qy = scene.particles_pos[q * 3 + 1];
-						GLfloat qz = scene.particles_pos[q * 3 + 2];
+					GLfloat pq_dist_sq = (px - qx) * (px - qx) + (py - qy) * (py - qy) ;
+					if (pq_dist_sq > min_dist_sq) continue;
 
-						GLfloat pq_dist_sq = (px - qx) * (px - qx) + (py - qy) * (py - qy) + (pz - qz) * (pz - qz);
-						if (pq_dist_sq > min_dist_sq) continue;
+					GLfloat pq_dist = std::sqrt(pq_dist_sq);
 
-						GLfloat pq_dist = std::sqrt(pq_dist_sq);
+					if (pq_dist == 0) continue; // avoid div by 0
 
-						if (pq_dist == 0) continue; // avoid div by 0
+					GLfloat push_factor = 0.5f * (min_dist - pq_dist) / pq_dist;
 
-						GLfloat push_factor = 0.5f * (min_dist - pq_dist) / pq_dist;
+					GLfloat push_x = (px - qx) * push_factor;
+					GLfloat push_y = (py - qy) * push_factor;
 
-						GLfloat push_x = (px - qx) * push_factor;
-						GLfloat push_y = (py - qy) * push_factor;
-						GLfloat push_z = (pz - qz) * push_factor;
-
-						scene.particles_pos[i * 3] += push_x;
-						scene.particles_pos[q * 3] -= push_x;
-						scene.particles_pos[i * 3 + 1] += push_y;
-						scene.particles_pos[q * 3 + 1] -= push_y;
-						scene.particles_pos[i * 3 + 2] += push_z;
-						scene.particles_pos[q * 3 + 2] -= push_z;
-					}
+					scene.particles_pos[i * 3] += push_x;
+					scene.particles_pos[q * 3] -= push_x;
+					scene.particles_pos[i * 3 + 1] += push_y;
+					scene.particles_pos[q * 3 + 1] -= push_y;
 				}
+			}
 	}
 }
 
 void updateDensity()
 {
 	GLfloat half_cs = 0.5 * scene.c_size;
-	int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+	int cell_num = scene.num_c_x * scene.num_c_y;
 	std::fill(scene.density, scene.density + cell_num, 0.f);
 
 	for (int i = 0; i < scene.num_p; i++)
 	{
 		GLfloat px = scene.particles_pos[3 * i];
 		GLfloat py = scene.particles_pos[3 * i + 1];
-		GLfloat pz = scene.particles_pos[3 * i + 2];
 
 		if (px < scene.c_size) px = scene.c_size;
 		if (px > scene.c_size * (scene.num_c_x - 1)) px = scene.c_size * (scene.num_c_x - 1);
 		if (py < scene.c_size) py = scene.c_size;
 		if (py > scene.c_size * (scene.num_c_y - 1)) py = scene.c_size * (scene.num_c_y - 1);
-		if (pz < scene.c_size) pz = scene.c_size;
-		if (pz > scene.c_size * (scene.num_c_z - 1)) pz = scene.c_size * (scene.num_c_z - 1);
 
 		// Get corners of grid
 		GLuint x0 = std::floor((px - half_cs) / scene.c_size);
 		GLuint x1 = std::min(x0 + 1, scene.num_c_x - 2);
 		GLuint y0 = std::floor((py - half_cs) / scene.c_size);
 		GLuint y1 = std::min(y0 + 1, scene.num_c_y - 2);
-		GLuint z0 = std::floor((pz - half_cs) / scene.c_size);
-		GLuint z1 = std::min(z0 + 1, scene.num_c_z - 2);
 
 		// Get dx, dy, and dz (local coordinates of particle in its cell)
 		GLfloat local_x = (px - half_cs - x0 * scene.c_size) / scene.c_size;
 		GLfloat local_y = (py - half_cs - y0 * scene.c_size) / scene.c_size;
-		GLfloat local_z = (pz - half_cs - z0 * scene.c_size) / scene.c_size;
 
 		// Add projection to corners of grid
-		if (x0 < scene.num_c_x && y0 < scene.num_c_y && z0 < scene.num_c_z) 
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (1 - local_x) * (1 - local_y) * (1 - local_z) * scene.p_mass;
-		if (x1 < scene.num_c_x && y0 < scene.num_c_y && z0 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0] += (local_x) * (1 - local_y) * (1 - local_z) * scene.p_mass;
-		if (x0 < scene.num_c_x && y1 < scene.num_c_y && z0 < scene.num_c_z)
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (1 - local_x) * (local_y) * (1 - local_z) * scene.p_mass;
-		if (x1 < scene.num_c_x && y1 < scene.num_c_y && z0 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0] += (local_x) * (local_y) * (1 - local_z) * scene.p_mass;
-		if (x0 < scene.num_c_x && y0 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (1 - local_x) * (1 - local_y) * (local_z) * scene.p_mass;
-		if (x1 < scene.num_c_x && y0 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1] += (local_x) * (1 - local_y) * (local_z)*scene.p_mass;
-		if (x0 < scene.num_c_x && y1 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (1 - local_x) * (local_y) * (local_z)*scene.p_mass;
-		if (x1 < scene.num_c_x && y1 < scene.num_c_y && z1 < scene.num_c_z)
-			scene.density[x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1] += (local_x) * (local_y) * (local_z)*scene.p_mass;
+		if (x0 < scene.num_c_x && y0 < scene.num_c_y)
+			scene.density[x0 * scene.num_c_y + y0] += (1 - local_x) * (1 - local_y) * scene.p_mass;
+		if (x1 < scene.num_c_x && y0 < scene.num_c_y)
+			scene.density[x1 * scene.num_c_y + y0] += (local_x) * (1 - local_y) * scene.p_mass;
+		if (x0 < scene.num_c_x && y1 < scene.num_c_y)
+			scene.density[x0 * scene.num_c_y + y1] += (1 - local_x) * (local_y)*scene.p_mass;
+		if (x1 < scene.num_c_x && y1 < scene.num_c_y)
+			scene.density[x1 * scene.num_c_y + y1] += (local_x) * (local_y)*scene.p_mass;
 	}
 
 	if (scene.p_rest_density == 0.f) // First time, set default density
 	{
 		GLfloat sum = 0.f;
 		int fluid_cell_num = 0;
-		int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+		int cell_num = scene.num_c_x * scene.num_c_y ;
 
 		for (int i = 0; i < cell_num; i++)
 		{
@@ -453,31 +404,18 @@ void updateDensity()
 	}
 }
 
-// taken from Bridson
-GLfloat trihat_func(GLfloat r)
-{
-	if (r > 1 || r < -1)
-		return 0.f;
-	if (r >= 0)
-		return 1 + r;
-	return 1 - r;
-}
-
 void transferVelocities(bool toGrid, GLfloat flipRatio)
 {
 	GLfloat half_cs = 0.5 * scene.c_size;
-	int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+	int cell_num = scene.num_c_x * scene.num_c_y;
 
 	if (toGrid) {
 		std::copy(scene.u, scene.u + cell_num, scene.prevU);
 		std::copy(scene.v, scene.v + cell_num, scene.prevV);
-		std::copy(scene.w, scene.w + cell_num, scene.prevW);
 		std::fill(scene.du, scene.du + cell_num, 0.0f);
 		std::fill(scene.dv, scene.dv + cell_num, 0.0f);
-		std::fill(scene.dw, scene.dw + cell_num, 0.0f);
 		std::fill(scene.u, scene.u + cell_num, 0.0f);
 		std::fill(scene.v, scene.v + cell_num, 0.0f);
-		std::fill(scene.w, scene.w + cell_num, 0.0f);
 
 
 		for (int i = 0; i < cell_num; i++)
@@ -490,9 +428,8 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			GLfloat z = scene.particles_pos[3 * j + 2];
 			int xi = glm::clamp(static_cast<int>(std::floor(x / scene.c_size)), 0, static_cast<int>(scene.num_c_x - 1));
 			int yi = glm::clamp(static_cast<int>(std::floor(y / scene.c_size)), 0, static_cast<int>(scene.num_c_y - 1));
-			int zi = glm::clamp(static_cast<int>(std::floor(z / scene.c_size)), 0, static_cast<int>(scene.num_c_z - 1));
 
-			int cellNr = xi * scene.num_c_y  * scene.num_c_z + yi * scene.num_c_z + zi;
+			int cellNr = xi * scene.num_c_y  + yi ;
 			if (scene.cell_type[cellNr] == AIR)
 				scene.cell_type[cellNr] = FLUID;
 		}
@@ -501,16 +438,15 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 	GLfloat* f;
 	GLfloat* d;
 
-	for (int component = 0; component < 3; component++)
+	for (int component = 0; component < 2; component++)
 	{
 		GLfloat dx = component == 0 ? 0.0f : half_cs;
 		GLfloat dy = component == 1 ? 0.0f : half_cs;
-		GLfloat dz = component == 2 ? 0.0f : half_cs;
 
-		f = (component == 0) ? scene.u : ((component == 1) ? scene.v : scene.w);
-		GLfloat* prevF = (component == 0) ? scene.prevU : ((component == 1) ? scene.prevV : scene.prevW);
-		d = (component == 0) ? scene.du : ((component == 1) ? scene.dv : scene.dw);
-		GLfloat *weight = new GLfloat[scene.num_c_x * scene.num_c_y * scene.num_c_z];
+		f = (component == 0) ? scene.u : scene.v;
+		GLfloat* prevF = (component == 0) ? scene.prevU :  scene.prevV;
+		d = (component == 0) ? scene.du : scene.dv;
+		GLfloat* weight = new GLfloat[scene.num_c_x * scene.num_c_y];
 
 		for (int i = 0; i < scene.num_p; ++i) {
 			GLfloat x = scene.particles_pos[3 * i];
@@ -519,41 +455,27 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 
 			x = glm::clamp(x, scene.c_size, (scene.num_c_x - 1) * scene.c_size);
 			y = glm::clamp(y, scene.c_size, (scene.num_c_y - 1) * scene.c_size);
-			z = glm::clamp(z, scene.c_size, (scene.num_c_z - 1) * scene.c_size);
 
 			int x0 = std::min(static_cast<int>(std::floor((x - dx) / scene.c_size)), static_cast<int>(scene.num_c_x - 2));
 			GLfloat tx = ((x - dx) - x0 * scene.c_size) / scene.c_size;
-			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 3));
+			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 2));
 
 			int y0 = std::min(static_cast<int>(std::floor((y - dy) / scene.c_size)), static_cast<int>(scene.num_c_y - 2));
 			GLfloat ty = ((y - dy) - y0 * scene.c_size) / scene.c_size;
-			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 3));
-
-			int z0 = std::min(static_cast<int>(std::floor((z - dz) / scene.c_size)), static_cast<int>(scene.num_c_z - 2));
-			GLfloat tz = ((z - dz) - z0 * scene.c_size) / scene.c_size;
-			int z1 = std::min(z0 + 1, static_cast<int>(scene.num_c_z - 3));
+			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 2));
 
 			GLfloat sx = 1.0f - tx;
 			GLfloat sy = 1.0f - ty;
-			GLfloat sz = 1.0f - tz;
 
-			GLfloat d0 = sx * sy * sz * scene.p_mass;
-			GLfloat d1 = tx * sy * sz * scene.p_mass;
-			GLfloat d2 = tx * ty * sz * scene.p_mass;
-			GLfloat d3 = sx * ty * sz * scene.p_mass;
-			GLfloat d4 = sx * sy * tz * scene.p_mass;
-			GLfloat d5 = tx * sy * tz * scene.p_mass;
-			GLfloat d6 = tx * ty * tz * scene.p_mass;
-			GLfloat d7 = sx * ty * tz * scene.p_mass;
+			GLfloat d0 = sx * sy * scene.p_mass;
+			GLfloat d1 = tx * sy * scene.p_mass;
+			GLfloat d2 = tx * ty * scene.p_mass;
+			GLfloat d3 = sx * ty * scene.p_mass;
 
-			int nr0 = x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0;
-			int nr1 = x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z0;
-			int nr2 = x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0;
-			int nr3 = x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z0;
-			int nr4 = x0 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1;
-			int nr5 = x1 * scene.num_c_y * scene.num_c_z + y0 * scene.num_c_z + z1;
-			int nr6 = x1 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1;
-			int nr7 = x0 * scene.num_c_y * scene.num_c_z + y1 * scene.num_c_z + z1;
+			int nr0 = x0 * scene.num_c_y + y0;
+			int nr1 = x1 * scene.num_c_y + y0;
+			int nr2 = x1 * scene.num_c_y + y1;
+			int nr3 = x0 * scene.num_c_y + y1;
 
 			if (toGrid) {
 				GLfloat pv = scene.particles_vel[3 * i + component];
@@ -565,37 +487,22 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 				d[nr2] += d2;
 				f[nr3] += pv * d3;
 				d[nr3] += d3;
-				f[nr4] += pv * d4;
-				d[nr4] += d4;
-				f[nr5] += pv * d5;
-				d[nr5] += d5;
-				f[nr6] += pv * d6;
-				d[nr6] += d6;
-				f[nr7] += pv * d7;
-				d[nr7] += d7;
 			}
 			else {
-				int offset = (component == 0) ? scene.num_c_y * scene.num_c_z : ((component == 1) ? scene.num_c_z : 1);
+				int offset = (component == 0) ? scene.num_c_y : 1;
 				float valid0 = (scene.cell_type[nr0] != AIR || scene.cell_type[nr0 - offset] != AIR) ? 1.0f : 0.0f;
 				float valid1 = (scene.cell_type[nr1] != AIR || scene.cell_type[nr1 - offset] != AIR) ? 1.0f : 0.0f;
 				float valid2 = (scene.cell_type[nr2] != AIR || scene.cell_type[nr2 - offset] != AIR) ? 1.0f : 0.0f;
 				float valid3 = (scene.cell_type[nr3] != AIR || scene.cell_type[nr3 - offset] != AIR) ? 1.0f : 0.0f;
-				float valid4 = (scene.cell_type[nr4] != AIR || scene.cell_type[nr4 - offset] != AIR) ? 1.0f : 0.0f;
-				float valid5 = (scene.cell_type[nr5] != AIR || scene.cell_type[nr5 - offset] != AIR) ? 1.0f : 0.0f;
-				float valid6 = (scene.cell_type[nr6] != AIR || scene.cell_type[nr6 - offset] != AIR) ? 1.0f : 0.0f;
-				float valid7 = (scene.cell_type[nr7] != AIR || scene.cell_type[nr7 - offset] != AIR) ? 1.0f : 0.0f;
 
 
 				float v = scene.particles_vel[3 * i + component];
-				float d_val = valid0 * d0 + valid1 * d1 + valid2 * d2 + valid3 * d3 + valid4 * d4 + valid5 * d5 + valid6 * d6 + valid7 * d7;
+				float d_val = valid0 * d0 + valid1 * d1 + valid2 * d2 + valid3 * d3;
 
 				if (d_val > 0.0f) {
-					float picV = (valid0 * d0 * f[nr0] + valid1 * d1 * f[nr1] + valid2 * d2 * f[nr2] + valid3 * d3 * f[nr3]
-						+ valid4 * d4 * f[nr4] + valid5 * d5 * f[nr5] + valid6 * d6 * f[nr6] + valid7 * d7 * f[nr7]) / d_val;
+					float picV = (valid0 * d0 * f[nr0] + valid1 * d1 * f[nr1] + valid2 * d2 * f[nr2] + valid3 * d3 * f[nr3]) / d_val;
 					float corr = (valid0 * d0 * (f[nr0] - prevF[nr0]) + valid1 * d1 * (f[nr1] - prevF[nr1])
-						+ valid2 * d2 * (f[nr2] - prevF[nr2]) + valid3 * d3 * (f[nr3] - prevF[nr3])
-						+ valid4 * d4 * (f[nr4] - prevF[nr4]) + valid5 * d5 * (f[nr5] - prevF[nr5])
-						+ valid6 * d6 * (f[nr6] - prevF[nr6]) + valid7 * d7 * (f[nr7] - prevF[nr7])) / d_val;
+						+ valid2 * d2 * (f[nr2] - prevF[nr2]) + valid3 * d3 * (f[nr3] - prevF[nr3])) / d_val;
 					float flipV = v + corr;
 
 					scene.particles_vel[3 * i + component] = (1.0f - flipRatio) * picV + flipRatio * flipV;
@@ -615,16 +522,13 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 		// Restore solid cells
 		for (int i = 0; i < scene.num_c_x; ++i) {
 			for (int j = 0; j < scene.num_c_y; ++j) {
-				for (int k = 0; k < scene.num_c_z; ++k) {
-					int idx = i * scene.num_c_y * scene.num_c_z + j * scene.num_c_z + k;
-					bool solid = scene.cell_type[idx] == SOLID;
-					if (solid || (i > 0 && scene.cell_type[(i - 1) * scene.num_c_y * scene.num_c_z + j * scene.num_c_z + k] == SOLID))
-						scene.u[idx] = scene.prevU[idx];
-					if (solid || (j > 0 && scene.cell_type[i * scene.num_c_y * scene.num_c_z + (j - 1) * scene.num_c_z + k] == SOLID))
-						scene.v[idx] = scene.prevV[idx];
-					if (solid || (k > 0 && scene.cell_type[i * scene.num_c_y * scene.num_c_z + j * scene.num_c_z + (k - 1)] == SOLID))
-						scene.w[idx] = scene.prevW[idx];
-				}
+				int idx = i * scene.num_c_y  + j ;
+				bool solid = scene.cell_type[idx] == SOLID;
+				if (solid || (i > 0 && scene.cell_type[(i - 1) * scene.num_c_y  + j]  == SOLID))
+					scene.u[idx] = scene.prevU[idx];
+				if (solid || (j > 0 && scene.cell_type[i * scene.num_c_y  + (j - 1)] == SOLID))
+					scene.v[idx] = scene.prevV[idx];
+
 			}
 		}
 	}
@@ -632,12 +536,11 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 
 void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bool compensateDrift)
 {
-	int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+	int cell_num = scene.num_c_x * scene.num_c_y;
 
 	std::fill(scene.p, scene.p + cell_num, 0.0f);
 	std::copy(scene.u, scene.u + cell_num, scene.prevU);
 	std::copy(scene.v, scene.v + cell_num, scene.prevV);
-	std::copy(scene.w, scene.w + cell_num, scene.prevW);
 
 	int n = scene.num_c_y;
 	float cp = scene.p_density * scene.c_size / dt;
@@ -645,49 +548,42 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 	for (int iter = 0; iter < numIters; ++iter) {
 		for (int i = 1; i < scene.num_c_x - 1; ++i) {
 			for (int j = 1; j < scene.num_c_y - 1; ++j) {
-				for (int k = 1; k < scene.num_c_z - 1; ++k) {
-					int center = i * n * scene.num_c_z + j * scene.num_c_z + k;
-					int left = (i - 1) * n * scene.num_c_z + j * scene.num_c_z + k;
-					int right = (i + 1) * n * scene.num_c_z + j * scene.num_c_z + k;
-					int bottom = i * n * scene.num_c_z + (j - 1) * scene.num_c_z + k;
-					int top = i * n * scene.num_c_z + (j + 1) * scene.num_c_z + k;
-					int front = i * n * scene.num_c_z + j * scene.num_c_z + (k - 1);
-					int back = i * n * scene.num_c_z + j * scene.num_c_z + (k + 1);
+				int center = i * n * j;
+				int left = (i - 1) * n + j;
+				int right = (i + 1) * n + j;
+				int bottom = i * n + (j - 1);
+				int top = i * n + (j + 1);
 
-					if (scene.cell_type[center] != FLUID)
-						continue;
+				if (scene.cell_type[center] != FLUID)
+					continue;
 
-					float s = scene.s[center];
-					float sx0 = scene.s[left];
-					float sx1 = scene.s[right];
-					float sy0 = scene.s[bottom];
-					float sy1 = scene.s[top];
-					float sz0 = scene.s[front];
-					float sz1 = scene.s[back];
-					s = sx0 + sx1 + sy0 + sy1 + sz0 + sz1;
-					if (s == 0.0f)
-						continue;
+				float s = scene.s[center];
+				float sx0 = scene.s[left];
+				float sx1 = scene.s[right];
+				float sy0 = scene.s[bottom];
+				float sy1 = scene.s[top];
+				s = sx0 + sx1 + sy0 + sy1;
+				if (s == 0.0f)
+					continue;
 
-					float div = scene.u[right] - scene.u[center] + scene.v[top] - scene.v[center] + scene.w[back] - scene.w[center];
+				float div = scene.u[right] - scene.u[center] + scene.v[top] - scene.v[center];
 
-					if (scene.p_rest_density > 0.0f && compensateDrift) {
-						float k = 1.f; // TODO change k
-						float compression = scene.density[center] - scene.p_rest_density;
-						if (compression != 0.0f)
-							div = div - k * compression;
-					}
-
-					float p = -div / s;
-					p *= overRelaxation;
-					scene.p[center] += cp * p;
-
-					scene.u[center] -= sx0 * p;
-					scene.u[right] += sx1 * p;
-					scene.v[center] -= sy0 * p;
-					scene.v[top] += sy1 * p;
-					scene.w[center] -= sz0 * p;
-					scene.w[back] += sz1 * p;
+				if (scene.p_rest_density > 0.0f && compensateDrift) {
+					float k = 1.f; // TODO change k
+					float compression = scene.density[center] - scene.p_rest_density;
+					if (compression != 0.0f)
+						div = div - k * compression;
 				}
+
+				float p = -div / s;
+				p *= overRelaxation;
+				scene.p[center] += cp * p;
+
+				scene.u[center] -= sx0 * p;
+				scene.u[right] += sx1 * p;
+				scene.v[center] -= sy0 * p;
+				scene.v[top] += sy1 * p;
+
 			}
 		}
 	}
@@ -697,41 +593,37 @@ Scene setupFluidScene()
 {
 	const GLuint num_p_x = 16;
 	const GLuint num_p_y = 16;
-	const GLuint num_p_z = 16;
 	const GLuint num_c_x = 13;
 	const GLuint num_c_y = 13;
-	const GLuint num_c_z = 13;
 
-	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
-	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
+	const GLuint num_particles = num_p_x * num_p_y;
+	const GLuint num_cells = num_c_x * num_c_y;
 
 	const GLfloat p_rad = 0.05f; // particle radius
-	const GLfloat p_mass = 0.f;
-	const GLfloat cell_size = 1.f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
+	const GLfloat p_mass = 1.f;
+	const GLfloat cell_size = 1.f / std::max({ num_c_x, num_c_y }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
-	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);
+	Scene scene(num_particles, num_c_x, num_c_y, p_rad, p_mass, cell_size);
 
 	int particle = 0;
 	for (int i = 0; i < num_p_x; i++)
 		for (int j = 0; j < num_p_y; j++)
-			for (int k = 0; k < num_p_z; k++)
-			{
-				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
-				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * j * p_rad;
-				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
-			}
+		{
+			scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
+			scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * j * p_rad;
+			scene.particles_pos[particle++] = 0.f;
+		}
 
 	for (int i = 0; i < num_c_x; i++)
 		for (int j = 0; j < num_c_y; j++)
-			for (int k = 0; k < num_c_z; k++)
-			{
-				CellType curr_c_type = AIR;
-				if (i == 0 || i == num_c_x - 1 || j == 0 || k == 0 || k == num_c_z - 1)
-					curr_c_type = SOLID;
+		{
+			CellType curr_c_type = AIR;
+			if (i == 0 || i == num_c_x - 1 || j == 0)
+				curr_c_type = SOLID;
 
-				scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
-				scene.s[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type == SOLID ? 0.f : 1.f;
-			}
+			scene.cell_type[i * num_c_y + j] = curr_c_type;
+			scene.s[i * num_c_y + j] = curr_c_type == SOLID ? 0.f : 1.f;
+		}
 
 	return scene;
 }

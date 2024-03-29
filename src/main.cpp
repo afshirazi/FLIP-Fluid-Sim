@@ -180,7 +180,7 @@ int main() {
 		// Apply forces/adjustments
 		applyVel(1.f / 120.f);
 		handleSolidCellCollision();
-		//handleParticleParticleCollision();
+		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
 		solveIncompressibility(400, 1.f / 120.f, 1.9f, true);

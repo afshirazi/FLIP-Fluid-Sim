@@ -35,6 +35,9 @@
     <None Include="f_particle.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="v_floor.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util.h">

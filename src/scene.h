@@ -31,8 +31,8 @@ struct Scene {
     {
         int num_cells = num_cells_x * num_cells_y;
 
-        particles_pos = new GLfloat[num_particles * 3];
-        particles_vel = new GLfloat[num_particles * 3]();
+        particles_pos = new GLfloat[num_particles * 2];
+        particles_vel = new GLfloat[num_particles * 2]();
         cell_type = new CellType[num_cells];
         density = new GLfloat[num_cells]();
         u = new GLfloat[num_cells]();

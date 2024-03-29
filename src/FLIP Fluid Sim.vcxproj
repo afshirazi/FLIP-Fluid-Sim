@@ -27,6 +27,7 @@
     <None Include="f_floor.glsl" />
     <None Include="f_particle.glsl" />
     <None Include="v.glsl" />
+    <None Include="v_floor.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util.h" />

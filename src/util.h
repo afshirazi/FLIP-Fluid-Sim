@@ -5,9 +5,21 @@
 #include <glad/glad.h>
 
 
-std::string inputVertShader()
+std::string inputVertPShader()
 {
     std::ifstream istr("v.glsl");
+    std::string vert;
+    std::stringstream vShaderStream;
+    vShaderStream << istr.rdbuf();
+    vert = vShaderStream.str();
+
+    istr.close();
+    return vert;
+}
+
+std::string inputVertFShader()
+{
+    std::ifstream istr("v_floor.glsl");
     std::string vert;
     std::stringstream vShaderStream;
     vShaderStream << istr.rdbuf();
@@ -41,9 +53,21 @@ std::string inputFragPartShader()
     return frag;
 }
 
-GLuint getCompiledVShader()
+GLuint getCompiledVPShader()
 {
-    std::string vString = inputVertShader();
+    std::string vString = inputVertPShader();
+    const char* vertexShaderSource = vString.c_str();
+    GLuint vertexShader;
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    return vertexShader;
+}
+
+GLuint getCompiledVFShader()
+{
+    std::string vString = inputVertFShader();
     const char* vertexShaderSource = vString.c_str();
     GLuint vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -79,7 +103,7 @@ GLuint getCompiledFPartShader()
 
 GLuint createAndLinkFloorShaderProg()
 {
-    GLuint vertexShader = getCompiledVShader();
+    GLuint vertexShader = getCompiledVFShader();
     GLuint fragmentShader = getCompiledFFloorShader();
 
     GLuint shaderProgram;
@@ -96,7 +120,7 @@ GLuint createAndLinkFloorShaderProg()
 
 GLuint createAndLinkParticleShaderProg()
 {
-    GLuint vertexShader = getCompiledVShader();
+    GLuint vertexShader = getCompiledVPShader();
     GLuint fragmentShader = getCompiledFPartShader();
 
     GLuint shaderProgram;

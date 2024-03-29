@@ -116,8 +116,8 @@ int main() {
 	GLuint particles_VBO;
 	glGenBuffers(1, &particles_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, particles_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	GLuint fShaderProg = createAndLinkFloorShaderProg();
@@ -171,7 +171,7 @@ int main() {
 
 		// Draw particles
 		glBindVertexArray(particles_VAO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 2 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
 		glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
 		glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
 		glPointSize(5);
@@ -204,9 +204,9 @@ void applyVel(GLfloat dt)
 {
 	for (GLuint i = 0; i < scene.num_p; i++)
 	{
-		scene.particles_pos[3 * i] += scene.particles_vel[3 * i] * dt;
-		scene.particles_vel[3 * i + 1] -= 9.82f * dt;
-		scene.particles_pos[3 * i + 1] += scene.particles_vel[3 * i + 1] * dt;
+		scene.particles_pos[2 * i] += scene.particles_vel[2 * i] * dt;
+		scene.particles_vel[2 * i + 1] -= 9.82f * dt;
+		scene.particles_pos[2 * i + 1] += scene.particles_vel[2 * i + 1] * dt;
 	}
 }
 
@@ -214,8 +214,8 @@ void handleSolidCellCollision()
 {
 	for (GLuint i = 0; i < scene.num_p; i++)
 	{
-		const GLfloat x_pos = scene.particles_pos[3 * i];
-		const GLfloat y_pos = scene.particles_pos[3 * i + 1];
+		const GLfloat x_pos = scene.particles_pos[2 * i];
+		const GLfloat y_pos = scene.particles_pos[2 * i + 1];
 
 		/*
 		* For cell walls checking
@@ -230,20 +230,20 @@ void handleSolidCellCollision()
 
 		if (x_pos < min_pos)
 		{
-			scene.particles_pos[3 * i] = min_pos;
-			scene.particles_vel[3 * i] = 0.f;
+			scene.particles_pos[2 * i] = min_pos;
+			scene.particles_vel[2 * i] = 0.f;
 		}
 
 		if (y_pos < min_pos)
 		{
-			scene.particles_pos[3 * i + 1] = min_pos;
-			scene.particles_vel[3 * i + 1] = 0.f;
+			scene.particles_pos[2 * i + 1] = min_pos;
+			scene.particles_vel[2 * i + 1] = 0.f;
 		}
 
 		if (x_pos > max_pos_x)
 		{
-			scene.particles_pos[3 * i] = max_pos_x;
-			scene.particles_vel[3 * i] = 0.f;
+			scene.particles_pos[2 * i] = max_pos_x;
+			scene.particles_vel[2 * i] = 0.f;
 		}
 
 		
@@ -260,13 +260,13 @@ void handleParticleParticleCollision()
 
 	for (int i = 0; i < scene.num_p; i++)
 	{
-		int x_int = std::floor(scene.particles_pos[3 * i] / scene.c_size);
-		int y_int = std::floor(scene.particles_pos[3 * i + 1] / scene.c_size);
+		int x_int = std::floor(scene.particles_pos[2 * i] / scene.c_size);
+		int y_int = std::floor(scene.particles_pos[2 * i + 1] / scene.c_size);
 
 		if (x_int < 0) x_int = 0;
-		if (x_int > scene.num_c_x) x_int = scene.num_c_x - 1;
+		if (x_int > scene.num_c_x - 1) x_int = scene.num_c_x - 1;
 		if (y_int < 0) y_int = 0;
-		if (y_int > scene.num_c_y) y_int = scene.num_c_y - 1;
+		if (y_int > scene.num_c_y - 1) y_int = scene.num_c_y - 1;
 
 		cell_p_count[x_int * scene.num_c_y + y_int]++;
 	}
@@ -281,8 +281,8 @@ void handleParticleParticleCollision()
 
 	for (int i = 0; i < scene.num_p; i++)
 	{
-		int x_int = std::floor(scene.particles_pos[i * 3] / scene.c_size);
-		int y_int = std::floor(scene.particles_pos[i * 3 + 1] / scene.c_size);
+		int x_int = std::floor(scene.particles_pos[i * 2] / scene.c_size);
+		int y_int = std::floor(scene.particles_pos[i * 2 + 1] / scene.c_size);
 
 		if (x_int < 0) x_int = 0;
 		if (x_int > scene.num_c_x) x_int = scene.num_c_x;
@@ -300,22 +300,22 @@ void handleParticleParticleCollision()
 
 	for (int i = 0; i < scene.num_p; i++)
 	{
-		GLfloat px = scene.particles_pos[i * 3];
-		GLfloat py = scene.particles_pos[i * 3 + 1];
+		GLfloat px = scene.particles_pos[i * 2];
+		GLfloat py = scene.particles_pos[i * 2 + 1];
 		int x_int = std::floor(px / scene.c_size);
 		int y_int = std::floor(py / scene.c_size);
 
 		int xs = std::max({ x_int - 1, 0 });
 		int xe = std::min({ x_int + 1.f, scene.num_c_x - 1.f });
 		int ys = std::max({ y_int - 1, 0 });
-		int ye = std::min({ y_int + 1.f, scene.num_c_x - 1.f });
+		int ye = std::min({ y_int + 1.f, scene.num_c_y - 1.f });
 
 		// check all particles in the neighborhood around the current cell 
-		for (int xi = xs; xi < xe; xi++)
-			for (int yi = ys; yi < ye; yi++)
+		for (int xi = xs; xi <= xe; xi++)
+			for (int yi = ys; yi <= ye; yi++)
 			{
-				int start_pos = first_cell[xi * scene.num_c_y  + yi ];
-				int end_pos = first_cell[xi * scene.num_c_y  + yi];
+				int start_pos = first_cell[xi * scene.num_c_y  + yi];
+				int end_pos = first_cell[xi * scene.num_c_y  + yi + 1];
 
 				for (int j = start_pos; j < end_pos; j++)
 				{
@@ -323,8 +323,8 @@ void handleParticleParticleCollision()
 
 					if (q == i) continue;
 
-					GLfloat qx = scene.particles_pos[q * 3];
-					GLfloat qy = scene.particles_pos[q * 3 + 1];
+					GLfloat qx = scene.particles_pos[q * 2];
+					GLfloat qy = scene.particles_pos[q * 2 + 1];
 
 					GLfloat pq_dist_sq = (px - qx) * (px - qx) + (py - qy) * (py - qy) ;
 					if (pq_dist_sq > min_dist_sq) continue;
@@ -338,10 +338,10 @@ void handleParticleParticleCollision()
 					GLfloat push_x = (px - qx) * push_factor;
 					GLfloat push_y = (py - qy) * push_factor;
 
-					scene.particles_pos[i * 3] += push_x;
-					scene.particles_pos[q * 3] -= push_x;
-					scene.particles_pos[i * 3 + 1] += push_y;
-					scene.particles_pos[q * 3 + 1] -= push_y;
+					scene.particles_pos[i * 2] += push_x;
+					scene.particles_pos[q * 2] -= push_x;
+					scene.particles_pos[i * 2 + 1] += push_y;
+					scene.particles_pos[q * 2 + 1] -= push_y;
 				}
 			}
 	}
@@ -355,8 +355,8 @@ void updateDensity()
 
 	for (int i = 0; i < scene.num_p; i++)
 	{
-		GLfloat px = scene.particles_pos[3 * i];
-		GLfloat py = scene.particles_pos[3 * i + 1];
+		GLfloat px = scene.particles_pos[2 * i];
+		GLfloat py = scene.particles_pos[2 * i + 1];
 
 		if (px < scene.c_size) px = scene.c_size;
 		if (px > scene.c_size * (scene.num_c_x - 1)) px = scene.c_size * (scene.num_c_x - 1);
@@ -423,9 +423,8 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 
 		for (int j = 0; j < scene.num_p; j++)
 		{
-			GLfloat x = scene.particles_pos[3 * j];
-			GLfloat y = scene.particles_pos[3 * j + 1];
-			GLfloat z = scene.particles_pos[3 * j + 2];
+			GLfloat x = scene.particles_pos[2 * j];
+			GLfloat y = scene.particles_pos[2 * j + 1];
 			int xi = glm::clamp(static_cast<int>(std::floor(x / scene.c_size)), 0, static_cast<int>(scene.num_c_x - 1));
 			int yi = glm::clamp(static_cast<int>(std::floor(y / scene.c_size)), 0, static_cast<int>(scene.num_c_y - 1));
 
@@ -449,9 +448,8 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 		GLfloat* weight = new GLfloat[scene.num_c_x * scene.num_c_y];
 
 		for (int i = 0; i < scene.num_p; ++i) {
-			GLfloat x = scene.particles_pos[3 * i];
-			GLfloat y = scene.particles_pos[3 * i + 1];
-			GLfloat z = scene.particles_pos[3 * i + 2];
+			GLfloat x = scene.particles_pos[2 * i];
+			GLfloat y = scene.particles_pos[32* i + 1];
 
 			x = glm::clamp(x, scene.c_size, (scene.num_c_x - 1) * scene.c_size);
 			y = glm::clamp(y, scene.c_size, (scene.num_c_y - 1) * scene.c_size);
@@ -478,7 +476,7 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			int nr3 = x0 * scene.num_c_y + y1;
 
 			if (toGrid) {
-				GLfloat pv = scene.particles_vel[3 * i + component];
+				GLfloat pv = scene.particles_vel[2 * i + component];
 				f[nr0] += pv * d0;
 				d[nr0] += d0;
 				f[nr1] += pv * d1;
@@ -496,7 +494,7 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 				float valid3 = (scene.cell_type[nr3] != AIR || scene.cell_type[nr3 - offset] != AIR) ? 1.0f : 0.0f;
 
 
-				float v = scene.particles_vel[3 * i + component];
+				float v = scene.particles_vel[2 * i + component];
 				float d_val = valid0 * d0 + valid1 * d1 + valid2 * d2 + valid3 * d3;
 
 				if (d_val > 0.0f) {
@@ -505,7 +503,7 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 						+ valid2 * d2 * (f[nr2] - prevF[nr2]) + valid3 * d3 * (f[nr3] - prevF[nr3])) / d_val;
 					float flipV = v + corr;
 
-					scene.particles_vel[3 * i + component] = (1.0f - flipRatio) * picV + flipRatio * flipV;
+					scene.particles_vel[2 * i + component] = (1.0f - flipRatio) * picV + flipRatio * flipV;
 				}
 			}
 		}

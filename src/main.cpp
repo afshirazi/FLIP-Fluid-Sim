@@ -302,8 +302,8 @@ void handleParticleParticleCollision()
 	{
 		GLfloat px = scene.particles_pos[i * 3];
 		GLfloat py = scene.particles_pos[i * 3 + 1];
-		int x_int = std::floor(px / scene.num_c_x);
-		int y_int = std::floor(py / scene.num_c_y);
+		int x_int = std::floor(px / scene.c_size);
+		int y_int = std::floor(py / scene.c_size);
 
 		int xs = std::max({ x_int - 1, 0 });
 		int xe = std::min({ x_int + 1.f, scene.num_c_x - 1.f });

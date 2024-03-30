@@ -9,6 +9,8 @@
 #include "util.h"
 #include "scene.h"
 
+constexpr GLfloat GRAVITY = -9.81;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
 void applyVel(GLfloat dt);
@@ -21,45 +23,6 @@ void solveIncompressibility(int, GLfloat, GLfloat, bool);
 Scene setupFluidScene();
 
 Scene scene;
-
-/* REMOVE LATER
-
-GLfloat particles_pos[] = {
-		-0.5f, 0.2f,  0.5f,
-		-0.25f, 0.2f,  0.5f,
-		-0.2f, 0.2f,  0.5f,
-		-0.15f, 0.2f,  0.5f,
-		-0.f, 0.2f,  0.5f,
-		-0.5f, 0.2f,  -0.1f,
-		-0.25f, 0.2f,  -0.1f,
-		-0.2f, 0.2f,  -0.1f,
-		-0.15f, 0.2f,  -0.1f,
-		-0.f, 0.2f,  -0.1f,
-		-0.5f, 0.2f,  -0.4f,
-		-0.25f, 0.2f,  -0.4f,
-		-0.2f, 0.2f,  -0.4f,
-		-0.15f, 0.2f,  -0.4f,
-		-0.f, 0.2f,  -0.4f,
-};
-
-GLfloat particles_vel[] = {
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-};
-*/
 
 
 int main() {
@@ -131,16 +94,17 @@ int main() {
 
 	// Transformations for floor
 	proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
-	model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
-	model = glm::rotate(model, glm::radians(-120.0f), glm::vec3(0.f, 1.f, 0.f));
 	model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
+	model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.f, 1.f, 0.f));
+	model = glm::rotate(model, glm::radians(-30.0f), glm::vec3(0.f, 0.f, 1.f));
 	view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
 	floor_transform = proj * view * model;
 
 	// Transformations for particles
 	view = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.3, 0.3, 0.3));
-	view = glm::translate(view, glm::vec3(0.5f, 0.1f, -1.1f));
+	model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.f, 1.f, 0.f));
+	view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
 	particles_transform = proj * view * model;
 
 	GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");
@@ -186,8 +150,6 @@ int main() {
 		solveIncompressibility(400, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
-
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -204,8 +166,8 @@ void applyVel(GLfloat dt)
 {
 	for (GLuint i = 0; i < scene.num_p; i++)
 	{
+		scene.particles_vel[2 * i + 1] += GRAVITY * dt;
 		scene.particles_pos[2 * i] += scene.particles_vel[2 * i] * dt;
-		scene.particles_vel[2 * i + 1] -= 9.82f * dt;
 		scene.particles_pos[2 * i + 1] += scene.particles_vel[2 * i + 1] * dt;
 	}
 }
@@ -246,6 +208,11 @@ void handleSolidCellCollision()
 			scene.particles_vel[2 * i] = 0.f;
 		}
 
+		if (y_pos > max_pos_y)
+		{
+			scene.particles_pos[2 * i + 1] = max_pos_y;
+			scene.particles_vel[2 * i + 1] = 0.f;
+		}
 		
 	}
 }
@@ -419,7 +386,7 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 
 
 		for (int i = 0; i < cell_num; i++)
-			scene.cell_type[i] = scene.s[i] == 0.0 ? SOLID : AIR;
+			scene.cell_type[i] = (scene.s[i] == 0.0) ? SOLID : AIR;
 
 		for (int j = 0; j < scene.num_p; j++)
 		{
@@ -439,17 +406,16 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 
 	for (int component = 0; component < 2; component++)
 	{
-		GLfloat dx = component == 0 ? 0.0f : half_cs;
-		GLfloat dy = component == 1 ? 0.0f : half_cs;
+		GLfloat dx = (component == 0) ? 0.f : half_cs;
+		GLfloat dy = (component == 0) ? half_cs : 0.f;
 
 		f = (component == 0) ? scene.u : scene.v;
-		GLfloat* prevF = (component == 0) ? scene.prevU :  scene.prevV;
+		GLfloat* prevF = (component == 0) ? scene.prevU : scene.prevV;
 		d = (component == 0) ? scene.du : scene.dv;
-		GLfloat* weight = new GLfloat[scene.num_c_x * scene.num_c_y];
 
-		for (int i = 0; i < scene.num_p; ++i) {
+		for (int i = 0; i < scene.num_p; i++) {
 			GLfloat x = scene.particles_pos[2 * i];
-			GLfloat y = scene.particles_pos[32* i + 1];
+			GLfloat y = scene.particles_pos[2 * i + 1];
 
 			x = glm::clamp(x, scene.c_size, (scene.num_c_x - 1) * scene.c_size);
 			y = glm::clamp(y, scene.c_size, (scene.num_c_y - 1) * scene.c_size);
@@ -465,10 +431,10 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			GLfloat sx = 1.0f - tx;
 			GLfloat sy = 1.0f - ty;
 
-			GLfloat d0 = sx * sy * scene.p_mass;
-			GLfloat d1 = tx * sy * scene.p_mass;
-			GLfloat d2 = tx * ty * scene.p_mass;
-			GLfloat d3 = sx * ty * scene.p_mass;
+			GLfloat d0 = sx * sy;
+			GLfloat d1 = tx * sy;
+			GLfloat d2 = tx * ty;
+			GLfloat d3 = sx * ty;
 
 			int nr0 = x0 * scene.num_c_y + y0;
 			int nr1 = x1 * scene.num_c_y + y0;
@@ -507,12 +473,10 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 				}
 			}
 		}
-
-		delete[] weight;
 	}
 
 	if (toGrid) {
-		for (int i = 0; i < cell_num; ++i) {
+		for (int i = 0; i < cell_num; i++) {
 			if (d[i] > 0.0f)
 				f[i] /= d[i];
 		}
@@ -521,7 +485,7 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 		for (int i = 0; i < scene.num_c_x; ++i) {
 			for (int j = 0; j < scene.num_c_y; ++j) {
 				int idx = i * scene.num_c_y  + j ;
-				bool solid = scene.cell_type[idx] == SOLID;
+				bool solid = (scene.cell_type[idx] == SOLID);
 				if (solid || (i > 0 && scene.cell_type[(i - 1) * scene.num_c_y  + j]  == SOLID))
 					scene.u[idx] = scene.prevU[idx];
 				if (solid || (j > 0 && scene.cell_type[i * scene.num_c_y  + (j - 1)] == SOLID))
@@ -546,7 +510,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 	for (int iter = 0; iter < numIters; ++iter) {
 		for (int i = 1; i < scene.num_c_x - 1; ++i) {
 			for (int j = 1; j < scene.num_c_y - 1; ++j) {
-				int center = i * n * j;
+				int center = i * n + j;
 				int left = (i - 1) * n + j;
 				int right = (i + 1) * n + j;
 				int bottom = i * n + (j - 1);
@@ -569,7 +533,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 				if (scene.p_rest_density > 0.0f && compensateDrift) {
 					float k = 1.f; // TODO change k
 					float compression = scene.density[center] - scene.p_rest_density;
-					if (compression != 0.0f)
+					if (compression > 0.0f)
 						div = div - k * compression;
 				}
 
@@ -607,9 +571,8 @@ Scene setupFluidScene()
 	for (int i = 0; i < num_p_x; i++)
 		for (int j = 0; j < num_p_y; j++)
 		{
-			scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
-			scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * j * p_rad;
-			scene.particles_pos[particle++] = 0.f;
+			scene.particles_pos[particle++] = cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0.0f : p_rad);
+			scene.particles_pos[particle++] = cell_size + p_rad + 2 * j * p_rad;
 		}
 
 	for (int i = 0; i < num_c_x; i++)
@@ -620,7 +583,7 @@ Scene setupFluidScene()
 				curr_c_type = SOLID;
 
 			scene.cell_type[i * num_c_y + j] = curr_c_type;
-			scene.s[i * num_c_y + j] = curr_c_type == SOLID ? 0.f : 1.f;
+			scene.s[i * num_c_y + j] = (curr_c_type == SOLID) ? 0.f : 1.f;
 		}
 
 	return scene;

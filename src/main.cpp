@@ -22,46 +22,6 @@ Scene setupFluidScene();
 
 Scene scene;
 
-/* REMOVE LATER
-
-GLfloat particles_pos[] = {
-		-0.5f, 0.2f,  0.5f,
-		-0.25f, 0.2f,  0.5f,
-		-0.2f, 0.2f,  0.5f,
-		-0.15f, 0.2f,  0.5f,
-		-0.f, 0.2f,  0.5f,
-		-0.5f, 0.2f,  -0.1f,
-		-0.25f, 0.2f,  -0.1f,
-		-0.2f, 0.2f,  -0.1f,
-		-0.15f, 0.2f,  -0.1f,
-		-0.f, 0.2f,  -0.1f,
-		-0.5f, 0.2f,  -0.4f,
-		-0.25f, 0.2f,  -0.4f,
-		-0.2f, 0.2f,  -0.4f,
-		-0.15f, 0.2f,  -0.4f,
-		-0.f, 0.2f,  -0.4f,
-};
-
-GLfloat particles_vel[] = {
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-		0.f, 0.f,  0.f,
-};
-*/
-
-
 int main() {
 	// Some code taken from learnopengl.com
 	glfwInit();

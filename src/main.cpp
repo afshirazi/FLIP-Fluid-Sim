@@ -561,8 +561,8 @@ Scene setupFluidScene()
 	const GLuint num_particles = num_p_x * num_p_y;
 	const GLuint num_cells = num_c_x * num_c_y;
 
-	const GLfloat p_rad = 0.05f; // particle radius
-	const GLfloat p_mass = 1.f;
+	const GLfloat p_rad = 0.005f; // particle radius
+	const GLfloat p_mass = 0.05f;
 	const GLfloat cell_size = 1.f / std::max({ num_c_x, num_c_y }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, p_rad, p_mass, cell_size);

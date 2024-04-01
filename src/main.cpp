@@ -104,7 +104,7 @@ int main() {
 	view = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.3, 0.3, 0.3));
 	model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.f, 1.f, 0.f));
-	view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
+	view = glm::translate(view, glm::vec3(0.3f, -0.2f, -0.6f));
 	particles_transform = proj * view * model;
 
 	GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");
@@ -139,16 +139,18 @@ int main() {
 		glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
 		glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
 		glPointSize(5);
-		glDrawArrays(GL_POINTS, 0, scene.num_p);
+		glDrawArrays(GL_POINTS, 0, scene.num_p - 1);
 
 		// Apply forces/adjustments
-		applyVel(1.f / 120.f);
+		applyVel(1.f / 480.f);
 		handleSolidCellCollision();
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
-		solveIncompressibility(400, 1.f / 120.f, 1.9f, true);
+		solveIncompressibility(400, 1.f / 480.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
+
+		
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -252,9 +254,9 @@ void handleParticleParticleCollision()
 		int y_int = std::floor(scene.particles_pos[i * 2 + 1] / scene.c_size);
 
 		if (x_int < 0) x_int = 0;
-		if (x_int > scene.num_c_x) x_int = scene.num_c_x;
+		if (x_int > scene.num_c_x - 1) x_int = scene.num_c_x - 1;
 		if (y_int < 0) y_int = 0;
-		if (y_int > scene.num_c_y) y_int = scene.num_c_y;
+		if (y_int > scene.num_c_y - 1) y_int = scene.num_c_y - 1;
 
 		int p_pos = --first_cell[x_int * scene.num_c_y + y_int];
 		sorted_particles[p_pos] = i;
@@ -431,10 +433,10 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 			GLfloat sx = 1.0f - tx;
 			GLfloat sy = 1.0f - ty;
 
-			GLfloat d0 = sx * sy;
-			GLfloat d1 = tx * sy;
-			GLfloat d2 = tx * ty;
-			GLfloat d3 = sx * ty;
+			GLfloat d0 = sx * sy * scene.p_mass;
+			GLfloat d1 = tx * sy * scene.p_mass;
+			GLfloat d2 = tx * ty * scene.p_mass;
+			GLfloat d3 = sx * ty * scene.p_mass;
 
 			int nr0 = x0 * scene.num_c_y + y0;
 			int nr1 = x1 * scene.num_c_y + y0;
@@ -537,7 +539,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 						div = div - k * compression;
 				}
 
-				float p = -div / s;
+				float p = -div / s * scene.p_mass;
 				p *= overRelaxation;
 				scene.p[center] += cp * p;
 
@@ -553,8 +555,8 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 
 Scene setupFluidScene()
 {
-	const GLuint num_p_x = 16;
-	const GLuint num_p_y = 16;
+	const GLuint num_p_x = 30;
+	const GLuint num_p_y = 30;
 	const GLuint num_c_x = 13;
 	const GLuint num_c_y = 13;
 
@@ -562,8 +564,8 @@ Scene setupFluidScene()
 	const GLuint num_cells = num_c_x * num_c_y;
 
 	const GLfloat p_rad = 0.005f; // particle radius
-	const GLfloat p_mass = 0.05f;
-	const GLfloat cell_size = 1.f / std::max({ num_c_x, num_c_y }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
+	const GLfloat p_mass = 0.01f;
+	const GLfloat cell_size = 1.5f / std::max({ num_c_x, num_c_y }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, p_rad, p_mass, cell_size);
 
@@ -572,7 +574,7 @@ Scene setupFluidScene()
 		for (int j = 0; j < num_p_y; j++)
 		{
 			scene.particles_pos[particle++] = cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0.0f : p_rad);
-			scene.particles_pos[particle++] = cell_size + p_rad + 2 * j * p_rad;
+			scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * j * p_rad;
 		}
 
 	for (int i = 0; i < num_c_x; i++)

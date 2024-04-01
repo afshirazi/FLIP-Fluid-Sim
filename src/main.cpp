@@ -648,7 +648,7 @@ Scene setupFluidScene()
 	const GLuint num_p_y = 22;
 	const GLuint num_p_z = 22;
 	const GLuint num_c_x = 30;
-	const GLuint num_c_y = 10;
+	const GLuint num_c_y = 30;
 	const GLuint num_c_z = 20;
 
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
@@ -656,7 +656,7 @@ Scene setupFluidScene()
 
 	const GLfloat p_rad = 0.003f; // particle radius
 	const GLfloat p_mass = 0.05f;
-	const GLfloat cell_size = 0.3f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
+	const GLfloat cell_size = 0.4f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);
 
@@ -666,7 +666,7 @@ Scene setupFluidScene()
 			for (int k = 0; k < num_p_z; k++)
 			{
 				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
-				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * j * p_rad;
+				scene.particles_pos[particle++] = 6 * cell_size + p_rad + 2 * j * p_rad;
 				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
 			}
 

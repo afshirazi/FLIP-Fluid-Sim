@@ -146,7 +146,7 @@ int main() {
 		solveIncompressibility(400, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		//std::cout << scene.particles_pos[1] << " " << scene.particles_vel[0] << std::endl;
+		std::cout << scene.du[1] << " " << scene.particles_vel[0] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -644,19 +644,19 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 
 Scene setupFluidScene()
 {
-	const GLuint num_p_x = 16;
-	const GLuint num_p_y = 16;
-	const GLuint num_p_z = 16;
-	const GLuint num_c_x = 11;
-	const GLuint num_c_y = 11;
-	const GLuint num_c_z = 11;
+	const GLuint num_p_x = 22;
+	const GLuint num_p_y = 22;
+	const GLuint num_p_z = 22;
+	const GLuint num_c_x = 30;
+	const GLuint num_c_y = 10;
+	const GLuint num_c_z = 20;
 
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
-	const GLfloat p_rad = 0.05f; // particle radius
-	const GLfloat p_mass = 0.005f;
-	const GLfloat cell_size = 0.4f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
+	const GLfloat p_rad = 0.003f; // particle radius
+	const GLfloat p_mass = 0.05f;
+	const GLfloat cell_size = 0.3f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);
 

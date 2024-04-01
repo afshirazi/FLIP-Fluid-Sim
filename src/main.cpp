@@ -269,11 +269,11 @@ void handleParticleParticleCollision()
 		int z_int = std::floor(scene.particles_pos[i * 3 + 2] / scene.c_size);
 
 		if (x_int < 0) x_int = 0;
-		if (x_int > scene.num_c_x) x_int = scene.num_c_x - 1;
+		if (x_int > scene.num_c_x - 1) x_int = scene.num_c_x - 1;
 		if (y_int < 0) y_int = 0;
-		if (y_int > scene.num_c_y) y_int = scene.num_c_y - 1;
+		if (y_int > scene.num_c_y - 1) y_int = scene.num_c_y - 1;
 		if (z_int < 0) z_int = 0;
-		if (z_int > scene.num_c_z) z_int = scene.num_c_z - 1;
+		if (z_int > scene.num_c_z - 1) z_int = scene.num_c_z - 1;
 
 		int p_pos = --first_cell[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int];
 		sorted_particles[p_pos] = i;
@@ -473,15 +473,15 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 
 			int x0 = std::min(static_cast<int>(std::floor((x - dx) / scene.c_size)), static_cast<int>(scene.num_c_x - 2));
 			GLfloat tx = ((x - dx) - x0 * scene.c_size) / scene.c_size;
-			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 3));
+			int x1 = std::min(x0 + 1, static_cast<int>(scene.num_c_x - 2));
 
 			int y0 = std::min(static_cast<int>(std::floor((y - dy) / scene.c_size)), static_cast<int>(scene.num_c_y - 2));
 			GLfloat ty = ((y - dy) - y0 * scene.c_size) / scene.c_size;
-			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 3));
+			int y1 = std::min(y0 + 1, static_cast<int>(scene.num_c_y - 2));
 
 			int z0 = std::min(static_cast<int>(std::floor((z - dz) / scene.c_size)), static_cast<int>(scene.num_c_z - 2));
 			GLfloat tz = ((z - dz) - z0 * scene.c_size) / scene.c_size;
-			int z1 = std::min(z0 + 1, static_cast<int>(scene.num_c_z - 3));
+			int z1 = std::min(z0 + 1, static_cast<int>(scene.num_c_z - 2));
 
 			GLfloat sx = 1.0f - tx;
 			GLfloat sy = 1.0f - ty;
@@ -626,7 +626,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 							div = div - k * compression;
 					}
 
-					float p = -div / s;
+					float p = -div / s * scene.p_mass;
 					p *= overRelaxation;
 					scene.p[center] += cp * p;
 
@@ -654,8 +654,8 @@ Scene setupFluidScene()
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
-	const GLfloat p_rad = 0.005f; // particle radius
-	const GLfloat p_mass = 0.05f;
+	const GLfloat p_rad = 0.05f; // particle radius
+	const GLfloat p_mass = 0.005f;
 	const GLfloat cell_size = 0.4f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);

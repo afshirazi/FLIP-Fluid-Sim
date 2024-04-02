@@ -29,6 +29,7 @@
     <None Include="v.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="mclookup.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

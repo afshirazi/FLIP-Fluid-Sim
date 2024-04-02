@@ -8,6 +8,7 @@
 
 #include "util.h"
 #include "scene.h"
+#include "mclookup.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -17,6 +18,7 @@ void handleParticleParticleCollision();
 void transferVelocities(bool, GLfloat);
 void updateDensity();
 void solveIncompressibility(int, GLfloat, GLfloat, bool);
+void createSurface();
 
 Scene setupFluidScene();
 
@@ -76,7 +78,7 @@ int main() {
 	GLuint particles_VBO;
 	glGenBuffers(1, &particles_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, particles_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
 	glEnableVertexAttribArray(0);
 
@@ -129,14 +131,6 @@ int main() {
 		glLinkProgram(pShaderProg);
 		glUseProgram(pShaderProg);
 
-		// Draw particles
-		glBindVertexArray(particles_VAO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
-		glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
-		glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
-		glPointSize(5);
-		glDrawArrays(GL_POINTS, 0, scene.num_p);
-
 		// Apply forces/adjustments
 		applyVel(1.f / 120.f);
 		handleSolidCellCollision();
@@ -147,6 +141,17 @@ int main() {
 		transferVelocities(false, 0.9f);
 
 		//std::cout << scene.du[1] << " " << scene.particles_vel[0] << std::endl;
+
+		//createSurface();
+
+		// Draw particles
+		glBindVertexArray(particles_VAO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
+		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.vert_size, scene.vertices, GL_STREAM_DRAW); // Triangles?
+		glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
+		glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
+		glPointSize(5);
+		glDrawArrays(GL_POINTS, 0, scene.num_p);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -427,8 +432,6 @@ void updateDensity()
 		int fluid_cell_num = 0;
 		int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 
-		GLfloat min = 100.f;
-		GLfloat max = 0.f;
 
 		for (int i = 0; i < cell_num; i++)
 		{
@@ -436,8 +439,8 @@ void updateDensity()
 			{
 				sum += scene.density[i];
 				fluid_cell_num++;
-				min = std::min({ min, scene.density[i] });
-				max = std::max({ max, scene.density[i] });
+				scene.min_density = std::min({ scene.min_density, scene.density[i] });
+				scene.max_density = std::max({ scene.max_density, scene.density[i] });
 			}
 		}
 
@@ -674,6 +677,61 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 	}
 }
 
+void createSurface() {
+	GLfloat avg_den = (scene.min_density + scene.max_density) / 2; // use as surface level
+
+	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+	for (int i = 1; i < scene.num_c_x - 2; i++)
+		for (int j = 1; j < scene.num_c_y - 2; j++)
+			for (int k = 1; k < scene.num_c_z - 2; k++)
+			{
+				int cube_config_idx = 0;
+				for (int l = 0; l < 2; l++)
+					for (int m = 0; m < 2; m++)
+						for (int n = 0; n < 2; n++)
+						{
+							int cell_num = (i + l) * scene.num_c_y * scene.num_c_z + (j + m) * scene.num_c_z + (k + n);
+							if (scene.density[cell_num] < avg_den)
+								cube_config_idx |= (1 << (m * 4 + n * 2 + l));
+						}
+
+				
+				for (int l = 0; l < 12; l++)
+				{
+					int edge = aCases[cube_config_idx][l];
+					if (edge < 0) continue;
+
+					int c_a = cornerIndexAFromEdge[edge];
+					int c_b = cornerIndexBFromEdge[edge];
+
+					int axi = c_a % 2;
+					int azi = ((c_a - axi) / 2) % 2;
+					int ayi = (((c_a - axi) / 2) - azi) / 2;
+
+					int bxi = c_b % 2;
+					int bzi = ((c_b - bxi) / 2) % 2;
+					int byi = (((c_b - bxi) / 2) - bzi) / 2;
+
+					GLfloat ax = axi * scene.num_c_x;
+					GLfloat ay = ayi * scene.num_c_y;
+					GLfloat az = azi * scene.num_c_z;
+
+					GLfloat bx = bxi * scene.num_c_x;
+					GLfloat by = byi * scene.num_c_y;
+					GLfloat bz = bzi * scene.num_c_z;
+
+					GLfloat mx = (ax + bx) / 2;
+					GLfloat my = (ay + by) / 2;
+					GLfloat mz = (az + bz) / 2;
+
+					scene.vertices->push_back(mx);
+					scene.vertices->push_back(my);
+					scene.vertices->push_back(mz);
+					scene.vert_size++;
+				}
+			}
+}
+
 Scene setupFluidScene()
 {
 	const GLuint num_p_x = 40;
@@ -688,7 +746,7 @@ Scene setupFluidScene()
 
 	const GLfloat p_rad = 0.002f; // particle radius
 	const GLfloat p_mass = 0.08f;
-	const GLfloat cell_size = 0.4f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
+	const GLfloat cell_size = 0.4f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.4] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);
 

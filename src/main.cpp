@@ -726,13 +726,13 @@ void createSurface() {
 					int bzi = ((c_b - bxi) / 2) % 2;
 					int byi = (((c_b - bxi) / 2) - bzi) / 2;
 
-					GLfloat ax = axi * scene.num_c_x;
-					GLfloat ay = ayi * scene.num_c_y;
-					GLfloat az = azi * scene.num_c_z;
+					GLfloat ax = (axi + i) * scene.c_size;
+					GLfloat ay = (ayi + j) * scene.c_size;
+					GLfloat az = (azi + k) * scene.c_size;
 
-					GLfloat bx = bxi * scene.num_c_x;
-					GLfloat by = byi * scene.num_c_y;
-					GLfloat bz = bzi * scene.num_c_z;
+					GLfloat bx = (bxi + i) * scene.c_size;
+					GLfloat by = (byi + j) * scene.c_size;
+					GLfloat bz = (bzi + k) * scene.c_size;
 
 					GLfloat mx = (ax + bx) / 2;
 					GLfloat my = (ay + by) / 2;

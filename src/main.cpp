@@ -427,12 +427,17 @@ void updateDensity()
 		int fluid_cell_num = 0;
 		int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 
+		GLfloat min = 100.f;
+		GLfloat max = 0.f;
+
 		for (int i = 0; i < cell_num; i++)
 		{
 			if (scene.cell_type[i] == FLUID && scene.density[i] > 0.f)
 			{
 				sum += scene.density[i];
 				fluid_cell_num++;
+				min = std::min({ min, scene.density[i] });
+				max = std::max({ max, scene.density[i] });
 			}
 		}
 
@@ -440,7 +445,6 @@ void updateDensity()
 			scene.p_rest_density = sum / fluid_cell_num;
 	}
 }
-
 
 void transferVelocities(bool toGrid, GLfloat flipRatio)
 {

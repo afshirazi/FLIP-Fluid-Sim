@@ -143,10 +143,10 @@ int main() {
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
-		solveIncompressibility(400, 1.f / 120.f, 1.9f, true);
+		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		std::cout << scene.du[1] << " " << scene.particles_vel[0] << std::endl;
+		//std::cout << scene.du[1] << " " << scene.particles_vel[0] << std::endl;
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -279,26 +279,56 @@ void handleParticleParticleCollision()
 		sorted_particles[p_pos] = i;
 	}
 
-	// TODO make more efficient neighborhood lookup
 	// push particles apart
 	GLfloat min_dist = 2 * scene.p_rad;
 	GLfloat min_dist_sq = min_dist * min_dist;
+
+	GLfloat inv_cs = 1 / scene.c_size; // inverse to multiply instead of divide
+	GLfloat half_cs = scene.c_size / 2;
 
 	for (int i = 0; i < scene.num_p; i++)
 	{
 		GLfloat px = scene.particles_pos[i * 3];
 		GLfloat py = scene.particles_pos[i * 3 + 1];
 		GLfloat pz = scene.particles_pos[i * 3 + 2];
-		int x_int = std::floor(px / scene.c_size);
-		int y_int = std::floor(py / scene.c_size);
-		int z_int = std::floor(pz / scene.c_size);
+		int x_int = std::floor(px * inv_cs);
+		int y_int = std::floor(py * inv_cs);
+		int z_int = std::floor(pz * inv_cs);
 
-		int xs = std::max({ x_int - 1, 0 });
-		int xe = std::min({ x_int + 1.f, scene.num_c_x - 1.f });
-		int ys = std::max({ y_int - 1, 0 });
-		int ye = std::min({ y_int + 1.f, scene.num_c_x - 1.f });
-		int zs = std::max({ z_int - 1, 0 });
-		int ze = std::min({ z_int + 1.f, scene.num_c_x - 1.f });
+		int xs, xe, ys, ye, zs, ze;
+
+		if (px * inv_cs - x_int > half_cs) // should check 8 cells instead of 27 this way
+		{
+			xs = std::max({ x_int, 0 });
+			xe = std::min({ x_int + 1.f, scene.num_c_x - 1.f });
+		}
+		else
+		{
+			xs = std::max({ x_int - 1, 0 });
+			xe = std::min({ x_int + 0.f, scene.num_c_x - 1.f });
+		}
+
+		if (py * inv_cs - y_int > half_cs)
+		{
+			ys = std::max({ y_int, 0 });
+			ye = std::min({ y_int + 1.f, scene.num_c_x - 1.f });
+		}
+		else
+		{
+			ys = std::max({ y_int - 1, 0 });
+			ye = std::min({ y_int + 0.f, scene.num_c_x - 1.f });
+		}
+
+		if (pz * inv_cs - z_int > half_cs)
+		{
+			zs = std::max({ z_int, 0 });
+			ze = std::min({ z_int + 1.f, scene.num_c_x - 1.f });
+		}
+		else
+		{
+			zs = std::max({ z_int - 1, 0 });
+			ze = std::min({ z_int + 0.f, scene.num_c_x - 1.f });
+		}
 
 		// check all particles in the neighborhood around the current cell 
 		for (int xi = xs; xi < xe; xi++)
@@ -319,11 +349,9 @@ void handleParticleParticleCollision()
 						GLfloat qz = scene.particles_pos[q * 3 + 2];
 
 						GLfloat pq_dist_sq = (px - qx) * (px - qx) + (py - qy) * (py - qy) + (pz - qz) * (pz - qz);
-						if (pq_dist_sq > min_dist_sq) continue;
+						if (pq_dist_sq > min_dist_sq || pq_dist_sq == 0) continue;
 
 						GLfloat pq_dist = std::sqrt(pq_dist_sq);
-
-						if (pq_dist == 0) continue; // avoid div by 0
 
 						GLfloat push_factor = 0.5f * (min_dist - pq_dist) / pq_dist;
 
@@ -644,18 +672,18 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 
 Scene setupFluidScene()
 {
-	const GLuint num_p_x = 22;
-	const GLuint num_p_y = 22;
-	const GLuint num_p_z = 22;
-	const GLuint num_c_x = 30;
-	const GLuint num_c_y = 30;
-	const GLuint num_c_z = 20;
+	const GLuint num_p_x = 40;
+	const GLuint num_p_y = 40;
+	const GLuint num_p_z = 40;
+	const GLuint num_c_x = 40;
+	const GLuint num_c_y = 40;
+	const GLuint num_c_z = 30;
 
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
-	const GLfloat p_rad = 0.003f; // particle radius
-	const GLfloat p_mass = 0.05f;
+	const GLfloat p_rad = 0.002f; // particle radius
+	const GLfloat p_mass = 0.08f;
 	const GLfloat cell_size = 0.4f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.6] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);

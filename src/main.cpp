@@ -142,16 +142,29 @@ int main() {
 
 		//std::cout << scene.du[1] << " " << scene.particles_vel[0] << std::endl;
 
-		//createSurface();
+		createSurface();
+		/*scene.vertices->clear();
+		scene.vertices->push_back(0.2);
+		scene.vertices->push_back(0.3);
+		scene.vertices->push_back(0.2);
+		scene.vertices->push_back(0.3);
+		scene.vertices->push_back(0.3);
+		scene.vertices->push_back(-0.3);
+		scene.vertices->push_back(0.4);
+		scene.vertices->push_back(0.3);
+		scene.vertices->push_back(0.4);*/
+
+		std::cout << scene.vertices->size()/ 3 << " " << scene.num_c_x * scene.num_c_y * scene.num_c_z << std::endl;
 
 		// Draw particles
 		glBindVertexArray(particles_VAO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
-		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.vert_size, scene.vertices, GL_STREAM_DRAW); // Triangles?
+		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * scene.vertices->size(), &(scene.vertices->front()), GL_STREAM_DRAW); // Triangles?
 		glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
 		glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
 		glPointSize(5);
-		glDrawArrays(GL_POINTS, 0, scene.num_p);
+		//glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
+		glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 3);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -681,6 +694,7 @@ void createSurface() {
 	GLfloat avg_den = (scene.min_density + scene.max_density) / 2; // use as surface level
 
 	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
+	scene.vertices->clear();
 	for (int i = 1; i < scene.num_c_x - 2; i++)
 		for (int j = 1; j < scene.num_c_y - 2; j++)
 			for (int k = 1; k < scene.num_c_z - 2; k++)
@@ -727,7 +741,6 @@ void createSurface() {
 					scene.vertices->push_back(mx);
 					scene.vertices->push_back(my);
 					scene.vertices->push_back(mz);
-					scene.vert_size++;
 				}
 			}
 }

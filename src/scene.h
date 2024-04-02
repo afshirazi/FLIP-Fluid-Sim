@@ -33,7 +33,6 @@ struct Scene {
 
     GLfloat min_density, max_density;
     std::vector<GLfloat> *vertices;
-    GLuint vert_size;
 
     Scene() = default;
     Scene(GLuint num_particles, GLuint num_cells_x, GLuint num_cells_y, GLuint num_cells_z, GLfloat particle_radius, GLfloat particle_mass, GLfloat cell_size)
@@ -67,7 +66,6 @@ struct Scene {
         min_density = 1000.f;
         max_density = 0.f;
         vertices = new std::vector<GLfloat>();
-        vert_size = 0;
     }
 };
 

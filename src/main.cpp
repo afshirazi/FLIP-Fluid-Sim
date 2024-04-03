@@ -97,7 +97,7 @@ int main() {
 
 	// Transformations for floor
 	proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
-	model = glm::rotate(model, glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f));
+	model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
 	model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.f, 1.f, 0.f));
 	model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
 	view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
@@ -136,7 +136,7 @@ int main() {
 		glUseProgram(pShaderProg);
 
 		// Apply forces/adjustments
-		//applyVel(1.f / 120.f);
+		applyVel(1.f / 120.f);
 		handleSolidCellCollision();
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
@@ -158,9 +158,9 @@ int main() {
 		//glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
 		glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 3);
 
-		glUniform3f(pColorLoc, 1.f, 1.f, 1.f); // color blue
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * grid_v.size(), &(grid_v.front()), GL_STREAM_DRAW);
-		glDrawArrays(GL_POINTS, 0, grid_v.size() / 3);
+		//glUniform3f(pColorLoc, 1.f, 1.f, 1.f); // color blue
+		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * grid_v.size(), &(grid_v.front()), GL_STREAM_DRAW);
+		//glDrawArrays(GL_POINTS, 0, grid_v.size() / 3);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -727,13 +727,13 @@ void createSurface() {
 					int c_a = cornerIndexAFromEdge[edge];
 					int c_b = cornerIndexBFromEdge[edge];
 
-					int axi = c_a % 2;
-					int azi = ((c_a - axi) / 2) % 2;
-					int ayi = (((c_a - axi) / 2) - azi) / 2;
+					int axi = getXFromCorner[c_a];
+					int ayi = getYFromCorner[c_a];
+					int azi = getZFromCorner[c_a];
 
-					int bxi = c_b % 2;
-					int bzi = ((c_b - bxi) / 2) % 2;
-					int byi = (((c_b - bxi) / 2) - bzi) / 2;
+					int bxi = getXFromCorner[c_b];
+					int byi = getYFromCorner[c_b];
+					int bzi = getZFromCorner[c_b];
 
 					GLfloat ax = (axi + i) * scene.c_size;
 					GLfloat ay = (ayi + j) * scene.c_size;
@@ -756,12 +756,12 @@ void createSurface() {
 
 Scene setupFluidScene()
 {
-	const GLuint num_p_x = 1;
-	const GLuint num_p_y = 1;
-	const GLuint num_p_z = 1;
-	const GLuint num_c_x = 3;
-	const GLuint num_c_y = 3;
-	const GLuint num_c_z = 3;
+	const GLuint num_p_x = 40;
+	const GLuint num_p_y = 40;
+	const GLuint num_p_z = 40;
+	const GLuint num_c_x = 40;
+	const GLuint num_c_y = 40;
+	const GLuint num_c_z = 30;
 
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;

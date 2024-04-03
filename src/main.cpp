@@ -26,8 +26,6 @@ Scene setupFluidScene();
 
 Scene scene;
 
-std::vector<GLfloat> grid_v;
-
 int main() {
 	// Some code taken from learnopengl.com
 	glfwInit();
@@ -144,23 +142,17 @@ int main() {
 		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		//std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
-
-		createSurface();
+		createSurface(); // create water surface using marching cubes
 
 		// Draw particles
 		glBindVertexArray(particles_VAO);
 		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * scene.vertices->size(), &(scene.vertices->front()), GL_STREAM_DRAW); // Triangles?
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * scene.vertices->size(), &(scene.vertices->front()), GL_STREAM_DRAW); // Triangles
 		glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
 		glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
 		glPointSize(5);
 		//glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
 		glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 3);
-
-		//glUniform3f(pColorLoc, 1.f, 1.f, 1.f); // color blue
-		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * grid_v.size(), &(grid_v.front()), GL_STREAM_DRAW);
-		//glDrawArrays(GL_POINTS, 0, grid_v.size() / 3);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -664,7 +656,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 					float div = scene.u[right] - scene.u[center] + scene.v[top] - scene.v[center] + scene.w[back] - scene.w[center];
 
 					if (scene.p_rest_density > 0.0f && compensateDrift) {
-						float k = 1.f; // TODO change k
+						float k = 1.f;
 						float compression = scene.density[center] - scene.p_rest_density;
 						if (compression > 0.0f)
 							div = div - k * compression;
@@ -792,14 +784,6 @@ Scene setupFluidScene()
 
 				scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
 				scene.s[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type == SOLID ? 0.f : 1.f;
-
-				if (i < num_c_x - 1 && j < num_c_y - 1 && k < num_c_z - 1)
-				{
-					grid_v.push_back(i * cell_size + (cell_size / 2));
-					grid_v.push_back(j * cell_size + (cell_size / 2));
-					grid_v.push_back(k * cell_size + (cell_size / 2));
-				}
-				
 			}
 
 	return scene;

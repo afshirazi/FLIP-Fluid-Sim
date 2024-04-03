@@ -5,10 +5,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
+#include <vector>
 
 #include "util.h"
 #include "scene.h"
 #include "mclookup.h"
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
@@ -23,6 +25,8 @@ void createSurface();
 Scene setupFluidScene();
 
 Scene scene;
+
+std::vector<GLfloat> grid_v;
 
 int main() {
 	// Some code taken from learnopengl.com
@@ -94,7 +98,7 @@ int main() {
 	// Transformations for floor
 	proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
 	model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
-	model = glm::rotate(model, glm::radians(-120.0f), glm::vec3(0.f, 1.f, 0.f));
+	model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.f, 1.f, 0.f));
 	model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
 	view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
 	floor_transform = proj * view * model;
@@ -140,21 +144,9 @@ int main() {
 		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
 		transferVelocities(false, 0.9f);
 
-		//std::cout << scene.du[1] << " " << scene.particles_vel[0] << std::endl;
+		//std::cout << scene.particles_pos[0] << " " << scene.particles_vel[0] << std::endl;
 
 		createSurface();
-		/*scene.vertices->clear();
-		scene.vertices->push_back(0.2);
-		scene.vertices->push_back(0.3);
-		scene.vertices->push_back(0.2);
-		scene.vertices->push_back(0.3);
-		scene.vertices->push_back(0.3);
-		scene.vertices->push_back(-0.3);
-		scene.vertices->push_back(0.4);
-		scene.vertices->push_back(0.3);
-		scene.vertices->push_back(0.4);*/
-
-		std::cout << scene.vertices->size()/ 3 << " " << scene.num_c_x * scene.num_c_y * scene.num_c_z << std::endl;
 
 		// Draw particles
 		glBindVertexArray(particles_VAO);
@@ -165,6 +157,10 @@ int main() {
 		glPointSize(5);
 		//glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
 		glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 3);
+
+		//glUniform3f(pColorLoc, 1.f, 1.f, 1.f); // color blue
+		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * grid_v.size(), &(grid_v.front()), GL_STREAM_DRAW);
+		//glDrawArrays(GL_POINTS, 0, grid_v.size() / 3);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -691,24 +687,37 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 }
 
 void createSurface() {
-	GLfloat avg_den = (scene.min_density + scene.max_density) / 2; // use as surface level
+	GLfloat avg_den = (scene.min_density  + scene.max_density) / 2; // use as surface level
 
 	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 	scene.vertices->clear();
-	for (int i = 1; i < scene.num_c_x - 2; i++)
-		for (int j = 1; j < scene.num_c_y - 2; j++)
-			for (int k = 1; k < scene.num_c_z - 2; k++)
+	for (int i = 0; i < scene.num_c_x - 1; i++)
+		for (int j = 0; j < scene.num_c_y - 1; j++)
+			for (int k = 0; k < scene.num_c_z - 1; k++)
 			{
 				int cube_config_idx = 0;
+				int cell_num[8];
 				for (int l = 0; l < 2; l++)
 					for (int m = 0; m < 2; m++)
 						for (int n = 0; n < 2; n++)
-						{
-							int cell_num = (i + l) * scene.num_c_y * scene.num_c_z + (j + m) * scene.num_c_z + (k + n);
-							if (scene.density[cell_num] < avg_den)
-								cube_config_idx |= (1 << (m * 4 + n * 2 + l));
-						}
-
+							cell_num[l * 4 + m * 2 + n] = (i + l) * scene.num_c_y * scene.num_c_z + (j + m) * scene.num_c_z + (k + n);
+						
+				if (scene.density[cell_num[0]] >= avg_den) // (0,0,0) corner 0
+					cube_config_idx |= 1;
+				if (scene.density[cell_num[1]] >= avg_den) // (0,0,1) corner 3
+					cube_config_idx |= 8;
+				if (scene.density[cell_num[2]] >= avg_den) // (0,1,0) corner 4
+					cube_config_idx |= 16;
+				if (scene.density[cell_num[3]] >= avg_den) // (0,1,1) corner 7
+					cube_config_idx |= 128;
+				if (scene.density[cell_num[4]] >= avg_den) // (1,0,0) corner 1
+					cube_config_idx |= 2;
+				if (scene.density[cell_num[5]] >= avg_den) // (1,0,1) corner 2
+					cube_config_idx |= 4;
+				if (scene.density[cell_num[6]] >= avg_den) // (1,1,0) corner 5
+					cube_config_idx |= 32;
+				if (scene.density[cell_num[7]] >= avg_den) // (1,1,1) corner 6
+					cube_config_idx |= 64;
 				
 				for (int l = 0; l < 12; l++)
 				{
@@ -718,13 +727,13 @@ void createSurface() {
 					int c_a = cornerIndexAFromEdge[edge];
 					int c_b = cornerIndexBFromEdge[edge];
 
-					int axi = c_a % 2;
-					int azi = ((c_a - axi) / 2) % 2;
-					int ayi = (((c_a - axi) / 2) - azi) / 2;
+					int axi = getXFromCorner[c_a];
+					int ayi = getYFromCorner[c_a];
+					int azi = getZFromCorner[c_a];
 
-					int bxi = c_b % 2;
-					int bzi = ((c_b - bxi) / 2) % 2;
-					int byi = (((c_b - bxi) / 2) - bzi) / 2;
+					int bxi = getXFromCorner[c_b];
+					int byi = getYFromCorner[c_b];
+					int bzi = getZFromCorner[c_b];
 
 					GLfloat ax = (axi + i) * scene.c_size;
 					GLfloat ay = (ayi + j) * scene.c_size;
@@ -769,7 +778,7 @@ Scene setupFluidScene()
 			for (int k = 0; k < num_p_z; k++)
 			{
 				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * i * p_rad + (j % 2 == 0 ? 0 : p_rad);
-				scene.particles_pos[particle++] = 6 * cell_size + p_rad + 2 * j * p_rad;
+				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * j * p_rad;
 				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
 			}
 
@@ -783,6 +792,14 @@ Scene setupFluidScene()
 
 				scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
 				scene.s[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type == SOLID ? 0.f : 1.f;
+
+				if (i < num_c_x - 1 && j < num_c_y - 1 && k < num_c_z - 1)
+				{
+					grid_v.push_back(i * cell_size + (cell_size / 2));
+					grid_v.push_back(j * cell_size + (cell_size / 2));
+					grid_v.push_back(k * cell_size + (cell_size / 2));
+				}
+				
 			}
 
 	return scene;

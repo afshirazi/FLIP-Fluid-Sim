@@ -67,5 +67,24 @@ struct Scene {
         max_density = 0.f;
         vertices = new std::vector<GLfloat>();
     }
+
+    /*~Scene() {
+        delete[] particles_pos;
+        delete[] particles_vel;
+        delete[] cell_type;
+        delete[] density;
+        delete[] u;
+        delete[] v;
+        delete[] w;
+        delete[] du;
+        delete[] dv;
+        delete[] dw;
+        delete[] prevU;
+        delete[] prevV;
+        delete[] prevW;
+        delete[] p;
+        delete[] s;
+        delete vertices;
+    }*/
 };
 

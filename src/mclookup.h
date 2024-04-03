@@ -288,3 +288,36 @@ static const int cornerIndexBFromEdge[12] = {
     6,
     7
 };
+
+static const int getXFromCorner[8] = {
+    0,
+    1,
+    1,
+    0,
+    0,
+    1,
+    1,
+    0
+};
+
+static const int getYFromCorner[8] = {
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1
+};
+
+static const int getZFromCorner[8] = {
+    0,
+    0,
+    1,
+    1,
+    0,
+    0,
+    1,
+    1
+};

@@ -168,7 +168,7 @@ int main() {
 		// Draw particles
 		glBindVertexArray(particles_VAO);
 		glUniformMatrix4fv(fTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
-		glUniform3f(fColorLoc, 0.f, 0.5f, 0.f); // color blue
+		glUniform3f(fColorLoc, 0.f, 0.f, 0.5f); // color blue
 		if (particle)
 		{
 			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO

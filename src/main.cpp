@@ -26,6 +26,8 @@ Scene setupFluidScene();
 
 Scene scene;
 
+bool particle = false;
+
 int main() {
 	// Some code taken from learnopengl.com
 	glfwInit();
@@ -80,12 +82,20 @@ int main() {
 	GLuint particles_VBO;
 	glGenBuffers(1, &particles_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, particles_VBO);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
+
+	if (particle)
+	{
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+		glEnableVertexAttribArray(0);
+	}
+	else
+	{
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+	}
 
 	GLuint fShaderProg = createAndLinkFloorShaderProg();
 	GLuint pShaderProg = createAndLinkParticleShaderProg();
@@ -123,7 +133,7 @@ int main() {
 		glEnable(GL_BLEND);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Use particle shaders
+		// Use floor shaders
 		glLinkProgram(fShaderProg);
 		glUseProgram(fShaderProg);
 
@@ -133,13 +143,16 @@ int main() {
 		glUniform3f(fColorLoc, 0.29f, 0.29f, 0.29f); // color red
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-		// Use particle shaders
-		//glLinkProgram(pShaderProg);
-		//glUseProgram(pShaderProg);
-
-		// Use surface mesh shaders
-		glLinkProgram(surfaceShaderProg);
-		glUseProgram(surfaceShaderProg);
+		if (particle) // Use particle shaders
+		{
+			glLinkProgram(pShaderProg);
+			glUseProgram(pShaderProg);
+		}
+		else // Use surface mesh shaders
+		{
+			glLinkProgram(surfaceShaderProg);
+			glUseProgram(surfaceShaderProg);
+		}
 
 		// Apply forces/adjustments
 		applyVel(1.f / 120.f);
@@ -154,13 +167,19 @@ int main() {
 
 		// Draw particles
 		glBindVertexArray(particles_VAO);
-		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * scene.vertices->size(), &(scene.vertices->front()), GL_STREAM_DRAW); // Triangles
 		glUniformMatrix4fv(fTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
-		glUniform3f(fColorLoc, 0.f, 0.f, 0.5f); // color blue
-		glPointSize(5);
-		//glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
-		glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 6);
+		glUniform3f(fColorLoc, 0.f, 0.5f, 0.f); // color blue
+		if (particle)
+		{
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
+			glPointSize(5);
+			glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
+		}
+		else
+		{
+			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * scene.vertices->size(), &(scene.vertices->front()), GL_STREAM_DRAW); // Triangles
+			glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 6);
+		}
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

@@ -16,7 +16,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void keyboard_input(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 void applyVel(GLfloat dt);
-void handleSolidCellCollision();
+void handleSolidCellCollision(GLfloat dt);
 void handleParticleParticleCollision();
 void transferVelocities(bool, GLfloat);
 void updateDensity();
@@ -76,7 +76,7 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floor_EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
 
-	scene = setupFluidScene();
+	scene = setupFluidScene(1);
 
 	// VAO for particles
 	GLuint particles_VAO;
@@ -159,8 +159,8 @@ int main() {
 		}
 
 		// Apply forces/adjustments
+		handleSolidCellCollision(1 / 120.f);
 		applyVel(1.f / 120.f);
-		handleSolidCellCollision();
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
@@ -247,15 +247,13 @@ void applyVel(GLfloat dt)
 	}
 }
 
-void handleSolidCellCollision()
+void handleSolidCellCollision(GLfloat dt)
 {
 	for (GLuint i = 0; i < scene.num_p; i++)
 	{
 		const GLfloat x_pos = scene.particles_pos[3 * i];
 		const GLfloat y_pos = scene.particles_pos[3 * i + 1];
 		const GLfloat z_pos = scene.particles_pos[3 * i + 2];
-
-
 		/*
 		* For cell walls checking
 		* Minimum position of particles at any bound
@@ -302,6 +300,46 @@ void handleSolidCellCollision()
 		{
 			scene.particles_pos[3 * i + 2] = max_pos_z;
 			scene.particles_vel[3 * i + 2] = 0.f;
+		}
+
+		// collision with solids
+
+		const GLint xpi = std::floor(scene.particles_pos[3 * i] / scene.c_size);
+		const GLint ypi = std::floor(scene.particles_pos[3 * i + 1] / scene.c_size);
+		const GLint zpi = std::floor(scene.particles_pos[3 * i + 2] / scene.c_size);
+
+		int cell_num = xpi * scene.num_c_x * scene.num_c_y + ypi * scene.num_c_z + zpi;
+		if (scene.cell_type[cell_num] == SOLID)
+		{
+			//GLfloat half_cs = scene.c_size / 2;
+			//GLfloat cell_mid_x = xpi * scene.c_size + half_cs;
+			//GLfloat cell_mid_y = ypi * scene.c_size + half_cs;
+			//GLfloat cell_mid_z = zpi * scene.c_size + half_cs;
+
+			//glm::vec3 push(x_pos - cell_mid_x, y_pos - cell_mid_y, z_pos - cell_mid_z);
+			//GLfloat push_x = half_cs - x_pos + cell_mid_x; // testing push
+			//scene.particles_pos[3 * i] += push_x;
+			//scene.particles_vel[3 * i] = 0.f;
+			//scene.particles_vel[3 * i + 1] = 0.f;
+			//scene.particles_vel[3 * i + 2] = 0.f;
+			GLfloat xv = scene.particles_vel[3 * i];
+			GLfloat yv = scene.particles_vel[3 * i + 1];
+			GLfloat zv = scene.particles_vel[3 * i + 2];
+
+			GLfloat prev_x = scene.particles_pos[3 * i] - (xv * dt);
+			GLfloat prev_y = scene.particles_pos[3 * i + 1] - (yv * dt);
+			GLfloat prev_z = scene.particles_pos[3 * i + 2] - (zv * dt);
+
+			int prev_cell = prev_x * scene.num_c_x * scene.num_c_y + prev_y * scene.num_c_z + prev_z;
+
+			if (scene.cell_type[prev_cell] != SOLID)
+			{
+				 scene.particles_pos[3 * i] = prev_x;
+				 scene.particles_pos[3 * i + 1] = prev_y;
+				 scene.particles_pos[3 * i + 2] = prev_z;
+				 scene.particles_vel[3 * i] = 0.f;
+				 scene.particles_vel[3 * i + 2] = 0.f;
+			}
 		}
 	}
 }
@@ -749,7 +787,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 }
 
 void createSurface() {
-	GLfloat avg_den = (scene.min_density  + scene.max_density) / 2; // use as surface level
+	GLfloat avg_den = (scene.min_density + scene.min_density + scene.max_density) / 3; // use as surface level
 
 	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 	scene.vertices->clear();

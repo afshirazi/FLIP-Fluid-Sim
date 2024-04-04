@@ -81,11 +81,15 @@ int main() {
 	glGenBuffers(1, &particles_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, particles_VBO);
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 
 	GLuint fShaderProg = createAndLinkFloorShaderProg();
 	GLuint pShaderProg = createAndLinkParticleShaderProg();
+	GLuint surfaceShaderProg = createAndLinkSurfaceShaderProg();
 
 	glm::mat4 proj = glm::mat4(1.0f);
 	glm::mat4 model = glm::mat4(1.0f);
@@ -96,7 +100,7 @@ int main() {
 	// Transformations for floor
 	proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
 	model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
-	model = glm::rotate(model, glm::radians(-180.0f), glm::vec3(0.f, 1.f, 0.f));
+	model = glm::rotate(model, glm::radians(-120.0f), glm::vec3(0.f, 1.f, 0.f));
 	model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
 	view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
 	floor_transform = proj * view * model;
@@ -130,8 +134,12 @@ int main() {
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		// Use particle shaders
-		glLinkProgram(pShaderProg);
-		glUseProgram(pShaderProg);
+		//glLinkProgram(pShaderProg);
+		//glUseProgram(pShaderProg);
+
+		// Use surface mesh shaders
+		glLinkProgram(surfaceShaderProg);
+		glUseProgram(surfaceShaderProg);
 
 		// Apply forces/adjustments
 		applyVel(1.f / 120.f);
@@ -148,11 +156,11 @@ int main() {
 		glBindVertexArray(particles_VAO);
 		//glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 3 * scene.num_p, scene.particles_pos, GL_STREAM_DRAW); // Update particle positions in VBO
 		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * scene.vertices->size(), &(scene.vertices->front()), GL_STREAM_DRAW); // Triangles
-		glUniformMatrix4fv(pTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
-		glUniform3f(pColorLoc, 0.f, 0.f, 0.5f); // color blue
+		glUniformMatrix4fv(fTransformLoc, 1, GL_FALSE, glm::value_ptr(particles_transform));
+		glUniform3f(fColorLoc, 0.f, 0.f, 0.5f); // color blue
 		glPointSize(5);
 		//glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
-		glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 3);
+		glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 6);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -742,8 +750,34 @@ void createSurface() {
 					scene.vertices->push_back(mx);
 					scene.vertices->push_back(my);
 					scene.vertices->push_back(mz);
+					scene.vertices->push_back(0.f); // placeholder for normal
+					scene.vertices->push_back(0.f);
+					scene.vertices->push_back(0.f);
 				}
 			}
+
+	for (int i = 0; i < scene.vertices->size(); i += 18)
+	{
+		glm::vec3 vertA(scene.vertices->at(i), scene.vertices->at(i + 1), scene.vertices->at(i + 2));
+		glm::vec3 vertB(scene.vertices->at(i + 6), scene.vertices->at(i + 7), scene.vertices->at(i + 8));
+		glm::vec3 vertC(scene.vertices->at(i + 12), scene.vertices->at(i + 13), scene.vertices->at(i + 14));
+
+		glm::vec3 tan = vertB - vertA;
+		glm::vec3 bitan = vertC - vertA;
+
+		glm::vec3 norm = glm::cross(tan, bitan);
+		norm = glm::normalize(norm);
+
+		scene.vertices->at(i + 3) = norm.x;
+		scene.vertices->at(i + 4) = norm.y;
+		scene.vertices->at(i + 5) = norm.z;
+		scene.vertices->at(i + 9) = norm.x;
+		scene.vertices->at(i + 10) = norm.y;
+		scene.vertices->at(i + 11) = norm.z;
+		scene.vertices->at(i + 15) = norm.x;
+		scene.vertices->at(i + 16) = norm.y;
+		scene.vertices->at(i + 17) = norm.z;
+	}
 }
 
 Scene setupFluidScene()

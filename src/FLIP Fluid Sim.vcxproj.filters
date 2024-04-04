@@ -26,7 +26,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="v.glsl">
+    <None Include="v_pos.glsl">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="f_floor.glsl">
@@ -35,6 +35,10 @@
     <None Include="f_particle.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="v_pos_norm.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="f_surface.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util.h">

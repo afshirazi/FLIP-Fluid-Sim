@@ -31,6 +31,8 @@
     <None Include="v_pos_norm.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\glfw3.h" />
+    <ClInclude Include="..\include\glfw3native.h" />
     <ClInclude Include="mclookup.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>
@@ -91,6 +93,11 @@
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)include</IncludePath>
     <LibraryPath>$(LibraryPath);$(SolutionDir)libs</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)include</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(SolutionDir)libs</LibraryPath>
+    <PublicIncludeDirectories>C:\Users\Ali Lenovo\Desktop\All\School\CS434\Final Project\FLIP Fluid Sim\include;$(PublicIncludeDirectories)</PublicIncludeDirectories>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -146,6 +153,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>glfw3.lib;opengl32.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

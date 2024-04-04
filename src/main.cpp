@@ -27,7 +27,8 @@ Scene setupFluidScene(int s = 0);
 
 Scene scene;
 
-bool particle = true;
+bool particle = false;
+bool solid_cell_on = false;
 int setup = 0;
 
 int main() {
@@ -76,7 +77,7 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floor_EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
 
-	scene = setupFluidScene(1);
+	scene = setupFluidScene(setup);
 
 	// VAO for particles
 	GLuint particles_VAO;
@@ -159,8 +160,8 @@ int main() {
 		}
 
 		// Apply forces/adjustments
-		handleSolidCellCollision(1 / 120.f);
 		applyVel(1.f / 120.f);
+		handleSolidCellCollision(1 / 120.f);
 		handleParticleParticleCollision();
 		transferVelocities(true, 0.0f);
 		updateDensity();
@@ -309,19 +310,8 @@ void handleSolidCellCollision(GLfloat dt)
 		const GLint zpi = std::floor(scene.particles_pos[3 * i + 2] / scene.c_size);
 
 		int cell_num = xpi * scene.num_c_x * scene.num_c_y + ypi * scene.num_c_z + zpi;
-		if (scene.cell_type[cell_num] == SOLID)
+		if (scene.cell_type[cell_num] == SOLID && solid_cell_on)
 		{
-			//GLfloat half_cs = scene.c_size / 2;
-			//GLfloat cell_mid_x = xpi * scene.c_size + half_cs;
-			//GLfloat cell_mid_y = ypi * scene.c_size + half_cs;
-			//GLfloat cell_mid_z = zpi * scene.c_size + half_cs;
-
-			//glm::vec3 push(x_pos - cell_mid_x, y_pos - cell_mid_y, z_pos - cell_mid_z);
-			//GLfloat push_x = half_cs - x_pos + cell_mid_x; // testing push
-			//scene.particles_pos[3 * i] += push_x;
-			//scene.particles_vel[3 * i] = 0.f;
-			//scene.particles_vel[3 * i + 1] = 0.f;
-			//scene.particles_vel[3 * i + 2] = 0.f;
 			GLfloat xv = scene.particles_vel[3 * i];
 			GLfloat yv = scene.particles_vel[3 * i + 1];
 			GLfloat zv = scene.particles_vel[3 * i + 2];
@@ -382,11 +372,11 @@ void handleParticleParticleCollision()
 		int y_int = std::floor(scene.particles_pos[i * 3 + 1] / scene.c_size);
 		int z_int = std::floor(scene.particles_pos[i * 3 + 2] / scene.c_size);
 
-		if (x_int < 0) x_int = 0;
+		if (x_int < 1) x_int = 1;
 		if (x_int > scene.num_c_x - 1) x_int = scene.num_c_x - 1;
-		if (y_int < 0) y_int = 0;
+		if (y_int < 1) y_int = 1;
 		if (y_int > scene.num_c_y - 1) y_int = scene.num_c_y - 1;
-		if (z_int < 0) z_int = 0;
+		if (z_int < 1) z_int = 1;
 		if (z_int > scene.num_c_z - 1) z_int = scene.num_c_z - 1;
 
 		int p_pos = --first_cell[x_int * scene.num_c_y * scene.num_c_z + y_int * scene.num_c_z + z_int];
@@ -787,7 +777,8 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 }
 
 void createSurface() {
-	GLfloat avg_den = (scene.min_density + scene.min_density + scene.max_density) / 3; // use as surface level
+	GLfloat a = 0.3f;
+	GLfloat avg_den = (1-a)*(scene.min_density) + a*(scene.max_density) ; // use as surface level
 
 	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 	scene.vertices->clear();

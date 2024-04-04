@@ -13,6 +13,7 @@
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void keyboard_input(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 void applyVel(GLfloat dt);
 void handleSolidCellCollision();
@@ -22,11 +23,12 @@ void updateDensity();
 void solveIncompressibility(int, GLfloat, GLfloat, bool);
 void createSurface();
 
-Scene setupFluidScene();
+Scene setupFluidScene(int s = 0);
 
 Scene scene;
 
-bool particle = false;
+bool particle = true;
+int setup = 0;
 
 int main() {
 	// Some code taken from learnopengl.com
@@ -37,6 +39,8 @@ int main() {
 
 	GLFWwindow* window = glfwCreateWindow(800, 600, "FLIP Fluid Simulator", NULL, NULL);
 	glfwMakeContextCurrent(window);
+
+	glfwSetKeyCallback(window, keyboard_input);
 
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
@@ -186,6 +190,45 @@ int main() {
 	}
 
 	glfwTerminate();
+}
+
+// GLFW key callback function
+void keyboard_input(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	// Check if the key is pressed and if it is the desired key (e.g., R for restart)
+	if (action == GLFW_PRESS)
+	{
+		switch (key) {
+			case GLFW_KEY_R:
+				// Call the restartSimulation function with new parameters
+				scene = setupFluidScene(setup);
+				break;
+			case GLFW_KEY_0:
+				setup = 0;
+				scene = setupFluidScene(setup);
+				break;
+			case GLFW_KEY_1:
+				setup = 1;
+				scene = setupFluidScene(setup);
+				break;
+			case GLFW_KEY_2:
+				setup = 2;
+				scene = setupFluidScene(setup);
+				break;
+			case GLFW_KEY_3:
+				setup = 3;
+				scene = setupFluidScene(setup);
+				break;
+			case GLFW_KEY_4:
+				setup = 4;
+				scene = setupFluidScene(setup);
+				break;
+			case GLFW_KEY_5:
+				setup = 5;
+				scene = setupFluidScene(setup);
+				break;
+		}
+	}
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -799,7 +842,7 @@ void createSurface() {
 	}
 }
 
-Scene setupFluidScene()
+Scene setupFluidScene(int setup)
 {
 	const GLuint num_p_x = 40;
 	const GLuint num_p_y = 40;
@@ -835,8 +878,26 @@ Scene setupFluidScene()
 				if (i == 0 || i == num_c_x - 1 || j == 0 || k == 0 || k == num_c_z - 1)
 					curr_c_type = SOLID;
 
+				switch (setup) {
+				case 1:
+					if (k < 15 && i > 15)
+						curr_c_type = SOLID;
+					break;
+				case 2:
+					if (i < j)
+						curr_c_type = SOLID;
+					break;
+				case 3:
+					break;
+				case 4:
+					break;
+				case 5:
+					break;
+				}
+
 				scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
 				scene.s[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type == SOLID ? 0.f : 1.f;
+				scene.colored_cell_vertices[i * num_c_y * num_c_z + j * num_c_z + k] = (curr_c_type == SOLID) ? 0.5f : 1.f;
 			}
 
 	return scene;

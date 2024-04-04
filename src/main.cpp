@@ -706,7 +706,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 }
 
 void createSurface() {
-	GLfloat avg_den = (scene.min_density  + scene.max_density) / 2; // use as surface level
+	GLfloat avg_den = (scene.min_density + scene.min_density + scene.max_density) / 3; // use as surface level
 
 	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 	scene.vertices->clear();

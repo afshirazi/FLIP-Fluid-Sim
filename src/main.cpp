@@ -18,6 +18,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
+static void KbdCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
@@ -37,13 +38,20 @@ void updateDensity();
 void solveIncompressibility(int, GLfloat, GLfloat, bool);
 void createSurface();
 
-Scene setupFluidScene();
+Scene setupFluidScene(int setup = 0);
 
 Scene scene;
 
 int particle = 0;
-bool solid_cell_on = false;
 bool play = true;
+int setup = 0;
+int num_p_x = 40;
+int num_p_y = 40;
+int num_p_z = 40;
+int num_c_x = 40;
+int num_c_y = 40;
+int num_c_z = 30;
+float sceneScale = 0.4;
 
 int main() {
 	// Some code taken from learnopengl.com
@@ -52,12 +60,12 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(800, 600, "FLIP Fluid Simulator", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1000, 800, "FLIP Fluid Simulator", NULL, NULL);
 	glfwMakeContextCurrent(window);
 
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-	glViewport(0, 0, 800, 600);
+	glViewport(0, 0, 1000, 800);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -141,8 +149,8 @@ int main() {
 
 	// Transformations for particles
 	view = glm::mat4(1.0f);
-	model = glm::scale(model, glm::vec3(0.67, 0.67, 0.67));
-	view = glm::translate(view, glm::vec3(0.4f, 0.1f, -1.1f));
+	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
+	view = glm::translate(view, glm::vec3(0.7f, 0.1f, -1.5f));
 	particles_transform = proj * view * model;
 
 	GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");
@@ -154,8 +162,24 @@ int main() {
 	glfwSetCursorPosCallback(window, mouseCallback);
 	glfwSetScrollCallback(window, scrollCallback);
 	glfwSetMouseButtonCallback(window, mouseButtonCallback);
+	glfwSetKeyCallback(window, KbdCallback);
+
+	std::cout << "User Controls:" << std::endl;
+	std::cout << "\tESC to exit." << std::endl;
+	std::cout << "\tSpace to play or pause the simulation." << std::endl;
+	std::cout << "\tLeft click + drag to rotate scene." << std::endl;
+	std::cout << "\tScroll to zoom in/out." << std::endl;
+	std::cout << "\t\'p\' to switch between surface and particle views." << std::endl;
+	std::cout << "\t\'0\' to restart the simulation." << std::endl;
+	std::cout << "\t\'1\' to restart simulation with Invisible Walls setup 1." << std::endl;
+	std::cout << "\t\'2\' to restart simulation with Invisible Walls setup 2." << std::endl;
+	std::cout << "\t\'3\' to restart simulation with Invisible Walls setup 3." << std::endl << std::endl;
+
 
 	float dt = 1 / 120.f;
+	float flipRatio = 0.9f;
+	float overRelaxation = 1.9f;
+	int numIters = 100;
 
 	// rendering loop
 	while (!glfwWindowShouldClose(window))
@@ -170,16 +194,36 @@ int main() {
 
 		// ImGUI window creation
 		ImGui::Begin("FLIP-fluid-simulation");
+		if (ImGui::Button("Play/Pause")) {
+			play = !play;
+		}
 		ImGui::Dummy(ImVec2(0.0f, 15.0f));
 		ImGui::RadioButton("Surface", &particle, 0);
 		ImGui::SameLine();
 		ImGui::RadioButton("Particles", &particle, true);
 		ImGui::Dummy(ImVec2(0.0f, 15.0f));
-		if (ImGui::Button("Play/Pause")) {
-			play = !play;
-		}
+
+		ImGui::Text("Runtime Parameters");
 
 		ImGui::SliderFloat("Time Step", &dt, 0.001, 0.03, "%f");
+		ImGui::SliderFloat("FLIP ratio", &flipRatio, 0.5, 1.f, "%f");
+		ImGui::SliderFloat("Overrelaxation", &overRelaxation, 1.f, 3.f, "%f");
+		ImGui::SliderInt("Iterations Incompressibility", &numIters, 20, 300, "%d");
+
+		ImGui::Dummy(ImVec2(0.0f, 15.0f));
+		ImGui::Text("Static Parameters - Restart to apply, might explode");
+
+		ImGui::SliderInt("No. Particles x", &num_p_x, 5, 50, "%d");
+		ImGui::SliderInt("No. Particles y", &num_p_y, 5, 50, "%d");
+		ImGui::SliderInt("No. Particles z", &num_p_z, 5, 50, "%d");
+		ImGui::SliderInt("No. Cells x", &num_c_x, 10, 50, "%d");
+		ImGui::SliderInt("No. Cells y", &num_c_y, 10, 50, "%d");
+		ImGui::SliderInt("No. Cells z", &num_c_z, 10, 50, "%d");
+		ImGui::SliderFloat("Scene Scale", &sceneScale, 0.25f, 0.6f, "%f");
+		if (ImGui::Button("Restart Simulation")) {
+			scene = setupFluidScene();
+		}
+
 
 		// Ends the window
 		ImGui::End();
@@ -214,8 +258,8 @@ int main() {
 			handleParticleParticleCollision();
 			transferVelocities(true, 0.0f);
 			updateDensity();
-			solveIncompressibility(100, dt, 1.9f, true);
-			transferVelocities(false, 0.9f);
+			solveIncompressibility(numIters, dt, overRelaxation, true);
+			transferVelocities(false, flipRatio);
 
 			createSurface(); // create water surface using marching cubes;
 		}
@@ -232,7 +276,7 @@ int main() {
 			glPointSize(5);
 			glDrawArrays(GL_POINTS, 0, scene.num_p); // for particles
 		}
-		else
+		else if (!scene.vertices->empty())
 		{
 			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * scene.vertices->size(), &(scene.vertices->front()), GL_STREAM_DRAW); // Triangles
 			glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 6);
@@ -247,6 +291,19 @@ int main() {
 	}
 
 	glfwTerminate();
+}
+
+//Quit when ESC is released
+static void KbdCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) glfwSetWindowShouldClose(window, GLFW_TRUE);
+	else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) play = !play;
+	else if (key == GLFW_KEY_P && action == GLFW_RELEASE) particle = !particle;
+	else if (key == GLFW_KEY_0 && action == GLFW_RELEASE) scene = setupFluidScene();
+	else if (key == GLFW_KEY_1 && action == GLFW_RELEASE) scene = setupFluidScene(1);
+	else if (key == GLFW_KEY_2 && action == GLFW_RELEASE) scene = setupFluidScene(2);
+	else if (key == GLFW_KEY_3 && action == GLFW_RELEASE) scene = setupFluidScene(3);
+
 }
 
 // Callback function for mouse movement
@@ -317,7 +374,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void applyVel(GLfloat dt)
 {
-	for (GLuint i = 0; i < scene.num_p; i++)
+#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < scene.num_p; i++)
 	{
 		scene.particles_pos[3 * i] += scene.particles_vel[3 * i] * dt;
 		scene.particles_vel[3 * i + 1] -= GRAVITY * dt;
@@ -328,7 +386,8 @@ void applyVel(GLfloat dt)
 
 void handleSolidCellCollision(GLfloat dt)
 {
-	for (GLuint i = 0; i < scene.num_p; i++)
+#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < scene.num_p; i++)
 	{
 		const GLfloat x_pos = scene.particles_pos[3 * i];
 		const GLfloat y_pos = scene.particles_pos[3 * i + 1];
@@ -383,7 +442,7 @@ void handleSolidCellCollision(GLfloat dt)
 
 		// collision with solids
 
-		const GLint xpi = std::floor(scene.particles_pos[3 * i] / scene.c_size);
+		/*const GLint xpi = std::floor(scene.particles_pos[3 * i] / scene.c_size);
 		const GLint ypi = std::floor(scene.particles_pos[3 * i + 1] / scene.c_size);
 		const GLint zpi = std::floor(scene.particles_pos[3 * i + 2] / scene.c_size);
 
@@ -408,7 +467,7 @@ void handleSolidCellCollision(GLfloat dt)
 				 scene.particles_vel[3 * i] = 0.f;
 				 scene.particles_vel[3 * i + 2] = 0.f;
 			}
-		}
+		}*/
 	}
 }
 
@@ -420,6 +479,7 @@ void handleParticleParticleCollision()
 	int* first_cell = new int[num_cells + 1]();
 	int* sorted_particles = new int[scene.num_p];
 
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < scene.num_p; i ++)
 	{
 		int x_int = std::floor(scene.particles_pos[3 * i] / scene.c_size);
@@ -468,6 +528,7 @@ void handleParticleParticleCollision()
 	GLfloat inv_cs = 1 / scene.c_size; // inverse to multiply instead of divide
 	GLfloat half_cs = scene.c_size / 2;
 
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < scene.num_p; i++)
 	{
 		GLfloat px = scene.particles_pos[i * 3];
@@ -558,6 +619,7 @@ void updateDensity()
 	int cell_num = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 	std::fill(scene.density, scene.density + cell_num, 0.f);
 
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < scene.num_p; i++)
 	{
 		GLfloat px = scene.particles_pos[3 * i];
@@ -642,10 +704,11 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 		std::fill(scene.v, scene.v + cell_num, 0.0f);
 		std::fill(scene.w, scene.w + cell_num, 0.0f);
 
-
+#pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < cell_num; i++)
 			scene.cell_type[i] = scene.s[i] == 0.0 ? SOLID : AIR;
 
+#pragma omp parallel for schedule(dynamic)
 		for (int j = 0; j < scene.num_p; j++)
 		{
 			GLfloat x = scene.particles_pos[3 * j];
@@ -661,9 +724,9 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 		}
 	}
 
+
 	GLfloat* f;
 	GLfloat* d;
-
 	for (int component = 0; component < 3; component++)
 	{
 		GLfloat dx = component == 0 ? 0.0f : half_cs;
@@ -774,6 +837,7 @@ void transferVelocities(bool toGrid, GLfloat flipRatio)
 		}
 
 		// Restore solid cells
+#pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < scene.num_c_x; ++i) {
 			for (int j = 0; j < scene.num_c_y; ++j) {
 				for (int k = 0; k < scene.num_c_z; ++k) {
@@ -803,6 +867,7 @@ void solveIncompressibility(int numIters, GLfloat dt, GLfloat overRelaxation, bo
 	int n = scene.num_c_y;
 	float cp = scene.p_density * scene.c_size / dt;
 
+#pragma omp parallel for schedule(dynamic)
 	for (int iter = 0; iter < numIters; ++iter) {
 		for (int i = 1; i < scene.num_c_x - 1; ++i) {
 			for (int j = 1; j < scene.num_c_y - 1; ++j) {
@@ -860,6 +925,7 @@ void createSurface() {
 
 	int num_cells = scene.num_c_x * scene.num_c_y * scene.num_c_z;
 	scene.vertices->clear();
+
 	for (int i = 0; i < scene.num_c_x - 1; i++)
 		for (int j = 0; j < scene.num_c_y - 1; j++)
 			for (int k = 0; k < scene.num_c_z - 1; k++)
@@ -925,6 +991,7 @@ void createSurface() {
 				}
 			}
 
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < scene.vertices->size(); i += 18)
 	{
 		glm::vec3 vertA(scene.vertices->at(i), scene.vertices->at(i + 1), scene.vertices->at(i + 2));
@@ -949,25 +1016,19 @@ void createSurface() {
 	}
 }
 
-Scene setupFluidScene()
+Scene setupFluidScene(int setup)
 {
-	const GLuint num_p_x = 40;
-	const GLuint num_p_y = 40;
-	const GLuint num_p_z = 40;
-	const GLuint num_c_x = 40;
-	const GLuint num_c_y = 40;
-	const GLuint num_c_z = 30;
-
 	const GLuint num_particles = num_p_x * num_p_y * num_p_z;
 	const GLuint num_cells = num_c_x * num_c_y * num_c_z;
 
 	const GLfloat p_rad = 0.002f; // particle radius
 	const GLfloat p_mass = 0.08f;
-	const GLfloat cell_size = 0.4f / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.4] (arbitrary choice)
+	const GLfloat cell_size = sceneScale / std::max({ num_c_x, num_c_y, num_c_z }); // finds largest dimension, and bounds it to coordinates [0, 0.4] (arbitrary choice)
 
 	Scene scene(num_particles, num_c_x, num_c_y, num_c_z, p_rad, p_mass, cell_size);
 
 	int particle = 0;
+
 	for (int i = 0; i < num_p_x; i++)
 		for (int j = 0; j < num_p_y; j++)
 			for (int k = 0; k < num_p_z; k++)
@@ -977,6 +1038,7 @@ Scene setupFluidScene()
 				scene.particles_pos[particle++] = 2 * cell_size + p_rad + 2 * k * p_rad + (j % 2 == 0 ? 0 : p_rad);
 			}
 
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < num_c_x; i++)
 		for (int j = 0; j < num_c_y; j++)
 			for (int k = 0; k < num_c_z; k++)
@@ -984,6 +1046,22 @@ Scene setupFluidScene()
 				CellType curr_c_type = AIR;
 				if (i == 0 || i == num_c_x - 1 || j == 0 || k == 0 || k == num_c_z - 1)
 					curr_c_type = SOLID;
+
+				// invisible walls (beta) - solid collisions not thorougly implemented, particles will leak.
+				switch (setup) {
+				case 1:
+					if (k < num_c_z / 3 && i > num_c_x / 3) // bottom right corner
+						curr_c_type = SOLID;
+					break;
+				case 2:
+					if (k > num_c_z / 3 && i > num_c_x / 3) // bottom left corner
+						curr_c_type = SOLID;
+					break;
+				case 3:
+					if (k > num_c_z / 3 && i < num_c_x / 3) // upper left corner
+						curr_c_type = SOLID;
+					break;
+				}
 
 				scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
 				scene.s[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type == SOLID ? 0.f : 1.f;

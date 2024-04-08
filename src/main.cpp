@@ -457,7 +457,7 @@ void handleSolidCellCollision(GLfloat dt)
 			GLfloat prev_y = scene.particles_pos[3 * i + 1] - (yv * dt);
 			GLfloat prev_z = scene.particles_pos[3 * i + 2] - (zv * dt);
 
-			int prev_cell = prev_x * scene.num_c_x * scene.num_c_y + prev_y * scene.num_c_z + prev_z;
+			int prev_cell = prev_x * scene.num_c_y * scene.num_c_z + prev_y * scene.num_c_z + prev_z;
 
 			if (scene.cell_type[prev_cell] != SOLID)
 			{

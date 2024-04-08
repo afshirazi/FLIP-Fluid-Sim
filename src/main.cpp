@@ -44,7 +44,6 @@ Scene scene;
 
 int particle = 0;
 bool play = true;
-int setup = 0;
 int num_p_x = 40;
 int num_p_y = 40;
 int num_p_z = 40;
@@ -170,7 +169,7 @@ int main() {
 	std::cout << "\tLeft click + drag to rotate scene." << std::endl;
 	std::cout << "\tScroll to zoom in/out." << std::endl;
 	std::cout << "\t\'p\' to switch between surface and particle views." << std::endl;
-	std::cout << "\t\'0\' to restart the simulation." << std::endl;
+	std::cout << "\t\'0\' to reset the simulation." << std::endl;
 	std::cout << "\t\'1\' to restart simulation with Invisible Walls setup 1." << std::endl;
 	std::cout << "\t\'2\' to restart simulation with Invisible Walls setup 2." << std::endl;
 	std::cout << "\t\'3\' to restart simulation with Invisible Walls setup 3." << std::endl << std::endl;
@@ -213,12 +212,12 @@ int main() {
 		ImGui::Dummy(ImVec2(0.0f, 15.0f));
 		ImGui::Text("Static Parameters - Restart to apply, might explode");
 
-		ImGui::SliderInt("No. Particles x", &num_p_x, 5, 50, "%d");
-		ImGui::SliderInt("No. Particles y", &num_p_y, 5, 50, "%d");
-		ImGui::SliderInt("No. Particles z", &num_p_z, 5, 50, "%d");
-		ImGui::SliderInt("No. Cells x", &num_c_x, 10, 50, "%d");
-		ImGui::SliderInt("No. Cells y", &num_c_y, 10, 50, "%d");
-		ImGui::SliderInt("No. Cells z", &num_c_z, 10, 50, "%d");
+		ImGui::SliderInt("No. Particles x", &num_p_x, 5, 60, "%d");
+		ImGui::SliderInt("No. Particles y", &num_p_y, 5, 60, "%d");
+		ImGui::SliderInt("No. Particles z", &num_p_z, 5, 60, "%d");
+		ImGui::SliderInt("No. Cells x", &num_c_x, 10, 80, "%d");
+		ImGui::SliderInt("No. Cells y", &num_c_y, 10, 80, "%d");
+		ImGui::SliderInt("No. Cells z", &num_c_z, 10, 80, "%d");
 		ImGui::SliderFloat("Scene Scale", &sceneScale, 0.25f, 0.6f, "%f");
 		if (ImGui::Button("Restart Simulation")) {
 			scene = setupFluidScene();
@@ -299,7 +298,16 @@ static void KbdCallback(GLFWwindow* window, int key, int scancode, int action, i
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) glfwSetWindowShouldClose(window, GLFW_TRUE);
 	else if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) play = !play;
 	else if (key == GLFW_KEY_P && action == GLFW_RELEASE) particle = !particle;
-	else if (key == GLFW_KEY_0 && action == GLFW_RELEASE) scene = setupFluidScene();
+	else if (key == GLFW_KEY_0 && action == GLFW_RELEASE) {
+		num_p_x = 40;
+		num_p_y = 40;
+		num_p_z = 40;
+		num_c_x = 40;
+		num_c_y = 40;
+		num_c_z = 30;
+		sceneScale = 0.4;
+		scene = setupFluidScene();
+	}
 	else if (key == GLFW_KEY_1 && action == GLFW_RELEASE) scene = setupFluidScene(1);
 	else if (key == GLFW_KEY_2 && action == GLFW_RELEASE) scene = setupFluidScene(2);
 	else if (key == GLFW_KEY_3 && action == GLFW_RELEASE) scene = setupFluidScene(3);

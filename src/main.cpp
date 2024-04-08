@@ -223,6 +223,18 @@ int main() {
 			scene = setupFluidScene();
 		}
 
+		ImGui::Dummy(ImVec2(0.0f, 20.0f));
+		ImGui::Text("User Controls:");
+		ImGui::Text("\tESC to exit.");
+		ImGui::Text("\tSpace to play or pause the simulation.");
+		ImGui::Text("\tLeft click + drag to rotate scene.");
+		ImGui::Text("\tScroll to zoom in/out.");
+		ImGui::Text("\t\'p\' to switch between surface and particle views.");
+		ImGui::Text("\t\'0\' to reset the simulation.");
+		ImGui::Text("\t\'1\' to restart simulation with Invisible Walls setup 1.");
+		ImGui::Text("\t\'2\' to restart simulation with Invisible Walls setup 2.");
+		ImGui::Text("\t\'3\' to restart simulation with Invisible Walls setup 3.");
+
 
 		// Ends the window
 		ImGui::End();
@@ -548,7 +560,7 @@ void handleParticleParticleCollision()
 
 		int xs, xe, ys, ye, zs, ze;
 
-		if (px * inv_cs - x_int > half_cs) // should check 8 cells instead of 27 this way
+		if (px * inv_cs - x_int > half_cs) // checks 8 cells instead of 27 this way
 		{
 			xs = std::max({ x_int, 0 });
 			xe = std::min({ x_int + 1.f, scene.num_c_x - 1.f });

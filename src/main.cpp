@@ -4,6 +4,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "../ImGui/imgui.h"
+#include "../ImGui/imgui_impl_glfw.h"
+#include "../ImGui/imgui_impl_opengl3.h"
+
 #include <algorithm>
 #include <vector>
 
@@ -13,7 +17,17 @@
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void keyboard_input(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+
+glm::mat4 view = glm::mat4(1.0f);
+float zoom = 1.0f;
+bool isDragging = false;
+double lastX = 0.0, lastY = 0.0;
+
+const GLfloat GRAVITY = 9.81f;
 
 void applyVel(GLfloat dt);
 void handleSolidCellCollision(GLfloat dt);
@@ -23,13 +37,13 @@ void updateDensity();
 void solveIncompressibility(int, GLfloat, GLfloat, bool);
 void createSurface();
 
-Scene setupFluidScene(int s = 0);
+Scene setupFluidScene();
 
 Scene scene;
 
-bool particle = false;
+int particle = 0;
 bool solid_cell_on = false;
-int setup = 0;
+bool play = true;
 
 int main() {
 	// Some code taken from learnopengl.com
@@ -41,19 +55,25 @@ int main() {
 	GLFWwindow* window = glfwCreateWindow(800, 600, "FLIP Fluid Simulator", NULL, NULL);
 	glfwMakeContextCurrent(window);
 
-	glfwSetKeyCallback(window, keyboard_input);
-
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
 	glViewport(0, 0, 800, 600);
 
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+	// Initialize ImGUI
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+
 	GLfloat floor_vertices[] = {
-	 -0.5f, 0.f,  0.5f,
-	 -0.5f, 0.f, -0.5f,
-	  0.5f, 0.f,  0.5f,
-	  0.5f, 0.f, -0.5f
+	 -10.5f, 0.f,  10.5f,
+	 -10.5f, 0.f, -10.5f,
+	  10.5f, 0.f,  10.5f,
+	  10.5f, 0.f, -10.5f
 	};
 	GLuint floor_indices[] = {
 		0, 1, 2,
@@ -77,7 +97,7 @@ int main() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, floor_EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(floor_indices), floor_indices, GL_STATIC_DRAW);
 
-	scene = setupFluidScene(setup);
+	scene = setupFluidScene();
 
 	// VAO for particles
 	GLuint particles_VAO;
@@ -108,7 +128,6 @@ int main() {
 
 	glm::mat4 proj = glm::mat4(1.0f);
 	glm::mat4 model = glm::mat4(1.0f);
-	glm::mat4 view = glm::mat4(1.0f);
 	glm::mat4 floor_transform;
 	glm::mat4 particles_transform;
 
@@ -116,20 +135,27 @@ int main() {
 	proj = glm::perspective(glm::radians(55.0f), 8.f / 6.f, 0.1f, 10.0f);
 	model = glm::rotate(model, glm::radians(40.f), glm::vec3(1.f, 0.f, 0.f));
 	model = glm::rotate(model, glm::radians(-120.0f), glm::vec3(0.f, 1.f, 0.f));
-	model = glm::scale(model, glm::vec3(1.5, 1.5, 1.5));
-	view = glm::translate(view, glm::vec3(0.f, 0.1f, -1.1f));
+	model = glm::scale(model, glm::vec3(2.5, 2.5, 2.5));
+	view = glm::translate(view, glm::vec3(-0.5f, 0.1f, -1.1f));
 	floor_transform = proj * view * model;
 
 	// Transformations for particles
 	view = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.67, 0.67, 0.67));
-	view = glm::translate(view, glm::vec3(0.5f, 0.1f, -1.1f));
+	view = glm::translate(view, glm::vec3(0.4f, 0.1f, -1.1f));
 	particles_transform = proj * view * model;
 
 	GLint fTransformLoc = glGetUniformLocation(fShaderProg, "transform");
 	GLint fColorLoc = glGetUniformLocation(fShaderProg, "vertColor");
 	GLint pTransformLoc = glGetUniformLocation(pShaderProg, "transform");
 	GLint pColorLoc = glGetUniformLocation(pShaderProg, "vertColor");
+
+	// Set up callbacks
+	glfwSetCursorPosCallback(window, mouseCallback);
+	glfwSetScrollCallback(window, scrollCallback);
+	glfwSetMouseButtonCallback(window, mouseButtonCallback);
+
+	float dt = 1 / 120.f;
 
 	// rendering loop
 	while (!glfwWindowShouldClose(window))
@@ -138,14 +164,36 @@ int main() {
 		glEnable(GL_BLEND);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// ImGUI window creation
+		ImGui::Begin("FLIP-fluid-simulation");
+		ImGui::Dummy(ImVec2(0.0f, 15.0f));
+		ImGui::RadioButton("Surface", &particle, 0);
+		ImGui::SameLine();
+		ImGui::RadioButton("Particles", &particle, true);
+		ImGui::Dummy(ImVec2(0.0f, 15.0f));
+		if (ImGui::Button("Play/Pause")) {
+			play = !play;
+		}
+
+		ImGui::SliderFloat("Time Step", &dt, 0.001, 0.03, "%f");
+
+		// Ends the window
+		ImGui::End();
+		
 		// Use floor shaders
 		glLinkProgram(fShaderProg);
 		glUseProgram(fShaderProg);
 
+		floor_transform = proj * view * model;
+
 		// Draw floor
 		glBindVertexArray(floor_VAO);
 		glUniformMatrix4fv(fTransformLoc, 1, GL_FALSE, glm::value_ptr(floor_transform));
-		glUniform3f(fColorLoc, 0.29f, 0.29f, 0.29f); // color red
+		glUniform3f(fColorLoc, 0.29f, 0.29f, 0.29f);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		if (particle) // Use particle shaders
@@ -160,15 +208,19 @@ int main() {
 		}
 
 		// Apply forces/adjustments
-		applyVel(1.f / 120.f);
-		handleSolidCellCollision(1 / 120.f);
-		handleParticleParticleCollision();
-		transferVelocities(true, 0.0f);
-		updateDensity();
-		solveIncompressibility(100, 1.f / 120.f, 1.9f, true);
-		transferVelocities(false, 0.9f);
+		if (play) {
+			applyVel(dt);
+			handleSolidCellCollision(dt);
+			handleParticleParticleCollision();
+			transferVelocities(true, 0.0f);
+			updateDensity();
+			solveIncompressibility(100, dt, 1.9f, true);
+			transferVelocities(false, 0.9f);
 
-		createSurface(); // create water surface using marching cubes
+			createSurface(); // create water surface using marching cubes;
+		}
+
+		particles_transform = proj * view * model;
 
 		// Draw particles
 		glBindVertexArray(particles_VAO);
@@ -186,6 +238,10 @@ int main() {
 			glDrawArrays(GL_TRIANGLES, 0, scene.vertices->size() / 6);
 		}
 
+		// Renders the ImGUI elements
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -193,41 +249,55 @@ int main() {
 	glfwTerminate();
 }
 
-// GLFW key callback function
-void keyboard_input(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	// Check if the key is pressed and if it is the desired key (e.g., R for restart)
-	if (action == GLFW_PRESS)
-	{
-		switch (key) {
-			case GLFW_KEY_R:
-				// Call the restartSimulation function with new parameters
-				scene = setupFluidScene(setup);
-				break;
-			case GLFW_KEY_0:
-				setup = 0;
-				scene = setupFluidScene(setup);
-				break;
-			case GLFW_KEY_1:
-				setup = 1;
-				scene = setupFluidScene(setup);
-				break;
-			case GLFW_KEY_2:
-				setup = 2;
-				scene = setupFluidScene(setup);
-				break;
-			case GLFW_KEY_3:
-				setup = 3;
-				scene = setupFluidScene(setup);
-				break;
-			case GLFW_KEY_4:
-				setup = 4;
-				scene = setupFluidScene(setup);
-				break;
-			case GLFW_KEY_5:
-				setup = 5;
-				scene = setupFluidScene(setup);
-				break;
+// Callback function for mouse movement
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+	//do not forget to pass the events to ImGUI!
+	ImGuiIO& io = ImGui::GetIO();
+	io.AddMousePosEvent(xpos, ypos);
+	if (io.WantCaptureMouse) return; //make sure you do not call this callback when over a menu
+
+	if (isDragging) {
+		float dx = xpos - lastX;
+		float dy = ypos - lastY;
+
+		// Rotate based on mouse movement
+		view = glm::rotate(view, glm::radians(dx), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(dy), glm::vec3(1.0f, 0.0f, 0.0f));
+
+		lastX = xpos;
+		lastY = ypos;
+	}
+}
+
+// Callback function for mouse scroll
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+	// Adjust zoom based on mouse scroll
+	zoom += yoffset * 0.1f;
+
+	// Update view matrix for zooming
+	double dz = 1.f + yoffset * 0.1f;
+	if (zoom >= 0.1f && zoom <= 3.f) {
+		view = glm::scale(view, glm::vec3(dz, dz, dz));
+	}
+	else if (zoom <= 0.1f)
+		zoom = 0.1f;
+	else
+		zoom = 3.f;
+}
+
+// Callback function for mouse button events
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+	ImGuiIO& io = ImGui::GetIO();
+	io.AddMouseButtonEvent(button, action);
+	if (io.WantCaptureMouse) return; //make sure you do not call this callback when over a menu
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (action == GLFW_PRESS) {
+			isDragging = true;
+			glfwGetCursorPos(window, &lastX, &lastY);
+		}
+		else if (action == GLFW_RELEASE) {
+			isDragging = false;
 		}
 	}
 }
@@ -242,7 +312,7 @@ void applyVel(GLfloat dt)
 	for (GLuint i = 0; i < scene.num_p; i++)
 	{
 		scene.particles_pos[3 * i] += scene.particles_vel[3 * i] * dt;
-		scene.particles_vel[3 * i + 1] -= 9.82f * dt;
+		scene.particles_vel[3 * i + 1] -= GRAVITY * dt;
 		scene.particles_pos[3 * i + 1] += scene.particles_vel[3 * i + 1] * dt;
 		scene.particles_pos[3 * i + 2] += scene.particles_vel[3 * i + 2] * dt;
 	}
@@ -309,7 +379,7 @@ void handleSolidCellCollision(GLfloat dt)
 		const GLint ypi = std::floor(scene.particles_pos[3 * i + 1] / scene.c_size);
 		const GLint zpi = std::floor(scene.particles_pos[3 * i + 2] / scene.c_size);
 
-		int cell_num = xpi * scene.num_c_x * scene.num_c_y + ypi * scene.num_c_z + zpi;
+		int cell_num = xpi * scene.num_c_y * scene.num_c_z + ypi * scene.num_c_z + zpi;
 		if (scene.cell_type[cell_num] == SOLID && solid_cell_on)
 		{
 			GLfloat xv = scene.particles_vel[3 * i];
@@ -871,7 +941,7 @@ void createSurface() {
 	}
 }
 
-Scene setupFluidScene(int setup)
+Scene setupFluidScene()
 {
 	const GLuint num_p_x = 40;
 	const GLuint num_p_y = 40;
@@ -907,26 +977,8 @@ Scene setupFluidScene(int setup)
 				if (i == 0 || i == num_c_x - 1 || j == 0 || k == 0 || k == num_c_z - 1)
 					curr_c_type = SOLID;
 
-				switch (setup) {
-				case 1:
-					if (k < 15 && i > 15)
-						curr_c_type = SOLID;
-					break;
-				case 2:
-					if (i < j)
-						curr_c_type = SOLID;
-					break;
-				case 3:
-					break;
-				case 4:
-					break;
-				case 5:
-					break;
-				}
-
 				scene.cell_type[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type;
 				scene.s[i * num_c_y * num_c_z + j * num_c_z + k] = curr_c_type == SOLID ? 0.f : 1.f;
-				scene.colored_cell_vertices[i * num_c_y * num_c_z + j * num_c_z + k] = (curr_c_type == SOLID) ? 0.5f : 1.f;
 			}
 
 	return scene;

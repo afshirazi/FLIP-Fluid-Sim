@@ -260,9 +260,17 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 		float dx = xpos - lastX;
 		float dy = ypos - lastY;
 
-		// Rotate based on mouse movement
-		view = glm::rotate(view, glm::radians(dx), glm::vec3(0.0f, 1.0f, 0.0f));
-		view = glm::rotate(view, glm::radians(dy), glm::vec3(1.0f, 0.0f, 0.0f));
+		// Sensitivity factor for rotation
+		float sensitivity = 0.1f;
+
+		// Update the rotation angles based on mouse movement
+		float yaw = dx * sensitivity;
+		float pitch = dy * sensitivity;
+
+		// Apply the rotation to the view matrix
+		view = glm::rotate(view, glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+
 
 		lastX = xpos;
 		lastY = ypos;

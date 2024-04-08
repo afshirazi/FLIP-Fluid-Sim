@@ -42,7 +42,6 @@ Scene setupFluidScene();
 Scene scene;
 
 int particle = 0;
-bool solid_cell_on = false;
 bool play = true;
 
 int main() {
@@ -375,7 +374,7 @@ void handleSolidCellCollision(GLfloat dt)
 
 		// collision with solids
 
-		const GLint xpi = std::floor(scene.particles_pos[3 * i] / scene.c_size);
+		/*const GLint xpi = std::floor(scene.particles_pos[3 * i] / scene.c_size);
 		const GLint ypi = std::floor(scene.particles_pos[3 * i + 1] / scene.c_size);
 		const GLint zpi = std::floor(scene.particles_pos[3 * i + 2] / scene.c_size);
 
@@ -390,7 +389,7 @@ void handleSolidCellCollision(GLfloat dt)
 			GLfloat prev_y = scene.particles_pos[3 * i + 1] - (yv * dt);
 			GLfloat prev_z = scene.particles_pos[3 * i + 2] - (zv * dt);
 
-			int prev_cell = prev_x * scene.num_c_x * scene.num_c_y + prev_y * scene.num_c_z + prev_z;
+			int prev_cell = prev_x * scene.num_c_y * scene.num_c_z + prev_y * scene.num_c_z + prev_z;
 
 			if (scene.cell_type[prev_cell] != SOLID)
 			{
@@ -400,7 +399,7 @@ void handleSolidCellCollision(GLfloat dt)
 				 scene.particles_vel[3 * i] = 0.f;
 				 scene.particles_vel[3 * i + 2] = 0.f;
 			}
-		}
+		}*/
 	}
 }
 
